@@ -3,7 +3,9 @@
 
 > The fastest recursive readdir in town
 
-Recursively crawls a directory to obtain paths and information on directory/symlink one each entry. Takes advantage of `uv_fs_scandir` support since Node.js 10.10, which may improve performance by up to 200% over previous efforts. Some non-scientific benchmark results comparing against the popular `walkdir` module:
+Recursively crawls a directory to obtain paths and information on directory/symlink one each entry. Takes advantage of `uv_fs_scandir` support since Node.js 10.10, which may improve performance by up to 200% over previous efforts.
+
+Some non-scientific benchmark results comparing against the popular `walkdir` module crawling the [Node.js repository](https://github.com/nodejs/node) on a NVMe SSD:
 
 | Test            | Engine          | OS           | Runtime |
 |-----------------|-----------------|--------------|---------|
