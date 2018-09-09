@@ -3,18 +3,18 @@
 
 > The fastest recursive readdir in town
 
-Recursively crawls a directory to obtain paths and information on directory/symlink one each entry. Takes advantage of `uv_fs_scandir` support since Node.js 10.10, which may improve performance by up to 200% over previous efforts. Some non-scientific benchmark results comparing against the popular `node-walkdir` module:
+Recursively crawls a directory to obtain paths and information on directory/symlink one each entry. Takes advantage of `uv_fs_scandir` support since Node.js 10.10, which may improve performance by up to 200% over previous efforts. Some non-scientific benchmark results comparing against the popular `walkdir` module:
 
-| Test                | Engine          | OS           | Runtime |
-|---------------------|-----------------|--------------|---------|
-| **rrdir** sync      | Node.js 10.10.0 | Linux 4.18.4 | 0.289s  |
-| **rrdir** async     | Node.js 10.10.0 | Linux 4.18.4 | 0.400s  |
-| node-walkdir sync   | Node.js 10.10.0 | Linux 4.18.4 | 0.423s  |
-| node-walkdir async  | Node.js 10.10.0 | Linux 4.18.4 | 1.557s  |
-| **rrdir** sync      | Node.js 8.11.4  | Linux 4.18.4 | 0.383s  |
-| node-walkdir sync   | Node.js 8.11.4  | Linux 4.18.4 | 0.416s  |
-| **rrdir** async     | Node.js 8.11.4  | Linux 4.18.4 | 1.148s  |
-| node-walkdir async  | Node.js 8.11.4  | Linux 4.18.4 | 1.813s  |
+| Test            | Engine          | OS           | Runtime |
+|-----------------|-----------------|--------------|---------|
+| **rrdir** sync  | Node.js 10.10.0 | Linux 4.18.4 | 0.289s  |
+| **rrdir** async | Node.js 10.10.0 | Linux 4.18.4 | 0.400s  |
+| walkdir sync    | Node.js 10.10.0 | Linux 4.18.4 | 0.423s  |
+| walkdir async   | Node.js 10.10.0 | Linux 4.18.4 | 1.557s  |
+| **rrdir** sync  | Node.js 8.11.4  | Linux 4.18.4 | 0.383s  |
+| walkdir sync    | Node.js 8.11.4  | Linux 4.18.4 | 0.416s  |
+| **rrdir** async | Node.js 8.11.4  | Linux 4.18.4 | 1.148s  |
+| walkdir async   | Node.js 8.11.4  | Linux 4.18.4 | 1.813s  |
 
 ## Installation
 ```console
