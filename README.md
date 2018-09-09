@@ -26,14 +26,8 @@ npm i rrdir
 ## Examples
 ```js
 const rrdir = require('rrdir');
-
-// async
-const entries = await rrdir('../dir');
-// => [{path: '../dir/file1', directory: false, symlink: true}]
-
-// sync
-const entries = rrdir.sync('../dir');
-// => [{path: '../dir/file1', directory: false, symlink: true}]
+const entries = await rrdir('../dir'); // => [{path: '../dir/file1', directory: false, symlink: true}]
+const entries = rrdir.sync('../dir'); // => [{path: '../dir/file1', directory: false, symlink: true}]
 ```
 
 ## API
@@ -55,5 +49,7 @@ Returns: `entries`, an array of `entry`.
 
 - `options.strict` *boolean*: Whether to throw errors when reading fails. Default: `false`.
 - `options.encoding` *string*: The encoding to use in the entry's path. Default: `'utf8'`.
+- `options.exclude` *Array*: Array of path globs to exclude from the result. Default: `[]`.
+- `options.minimatch` *Object*: [minimatch options](https://github.com/isaacs/minimatch#options). Default: `{matchBase: true, dot: true, nocomment: true}`.
 
 © [silverwind](https://github.com/silverwind), distributed under BSD licence

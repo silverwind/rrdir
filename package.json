@@ -28,5 +28,8 @@
     "eslint-config-silverwind": "^2.0.9",
     "updates": "^4.3.0",
     "ver": "2.0.1"
+  },
+  "dependencies": {
+    "multimatch": "2.1.0"
   }
 }

@@ -4,6 +4,7 @@
 const fs = require("fs");
 const {promisify} = require("util");
 const {join} = require("path");
+const multimatch = require("multimatch");
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
@@ -11,6 +12,12 @@ const stat = promisify(fs.stat);
 const defaults = {
   encoding: "utf8",
   strict: false,
+  exclude: [],
+  multimatch: {
+    matchBase: true,
+    dot: true,
+    nocomment: true,
+  }
 };
 
 // uv_fs_scandir / withFileTypes is supported in Node.js 10.10 or greater
@@ -25,10 +32,13 @@ const rrdir = module.exports = async (dir, opts) => {
   }
 
   let results = [];
+  let entries = [];
 
-  let entries;
   try {
-    entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: scandir});
+    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.multimatch).length);
+    if (!exclude) {
+      entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: scandir});
+    }
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -42,6 +52,10 @@ const rrdir = module.exports = async (dir, opts) => {
   for (const entry of entries) {
     const name = scandir ? entry.name : entry;
     const path = join(dir, name);
+
+    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.multimatch).length)) {
+      continue;
+    }
 
     let stats;
     if (scandir) {
@@ -77,7 +91,10 @@ module.exports.sync = (dir, opts) => {
 
   let entries;
   try {
-    entries = fs.readdirSync(dir, {encoding: opts.encoding, withFileTypes: scandir});
+    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.multimatch).length);
+    if (!exclude) {
+      entries = fs.readdirSync(dir, {encoding: opts.encoding, withFileTypes: scandir});
+    }
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -91,6 +108,10 @@ module.exports.sync = (dir, opts) => {
   for (const entry of entries) {
     const name = scandir ? entry.name : entry;
     const path = join(dir, name);
+
+    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.multimatch).length)) {
+      continue;
+    }
 
     let stats;
     if (scandir) {
