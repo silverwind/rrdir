@@ -44,6 +44,7 @@ Returns: `entries`, an array of `entry`.
 - `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative.
 - `entry.directory` *boolean*: Boolean indicating whether the entry is a directory.
 - `entry.symlink` *boolean*: Boolean indicating whether the entry is a symbolic link.
+- `entry.stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `option.stats` is set.
 
 #### Options
 
@@ -51,5 +52,6 @@ Returns: `entries`, an array of `entry`.
 - `options.encoding` *string*: The encoding to use in the entry's path. Default: `'utf8'`.
 - `options.exclude` *Array*: Array of path globs to exclude from the result. Default: `[]`.
 - `options.minimatch` *Object*: [minimatch options](https://github.com/isaacs/minimatch#options). Default: `{matchBase: true, dot: true, nocomment: true}`.
+- `options.stats` *boolean*: Include a `stats` object in an `entry`. Will reduce performance. Default: `false`.
 
 © [silverwind](https://github.com/silverwind), distributed under BSD licence

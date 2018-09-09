@@ -13,7 +13,7 @@ function exit(err) {
 async function main() {
   const r1 = [
     await rrdir("test"),
-    rrdir.sync("test")
+    rrdir.sync("test"),
   ];
   for (const result of r1) {
     assert.deepStrictEqual(result, [
@@ -25,12 +25,20 @@ async function main() {
 
   const r2 = [
     await rrdir("test", {exclude: ["subdir"]}),
-    rrdir.sync("test", {exclude: ["subdir"]})
+    rrdir.sync("test", {exclude: ["subdir"]}),
   ];
   for (const result of r2) {
     assert.deepStrictEqual(result, [
       {path: "test/file1", directory: false, symlink: false},
     ]);
+  }
+
+  const r3 = [
+    await rrdir("test", {exclude: ["subdir"], stats: true}),
+    rrdir.sync("test", {exclude: ["subdir"], stats: true}),
+  ];
+  for (const result of r3) {
+    assert.equal(result[0].stats.isFile(), true);
   }
 }
 

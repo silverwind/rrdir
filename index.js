@@ -12,6 +12,7 @@ const stat = promisify(fs.stat);
 const defaults = {
   encoding: "utf8",
   strict: false,
+  stats: false,
   exclude: [],
   minimatch: {
     matchBase: true,
@@ -58,7 +59,7 @@ const rrdir = module.exports = async (dir, opts) => {
     }
 
     let stats;
-    if (scandir) {
+    if (scandir && !opts.stats) {
       stats = entry;
     } else {
       try {
@@ -73,7 +74,9 @@ const rrdir = module.exports = async (dir, opts) => {
     if (stats) {
       const directory = stats.isDirectory();
       const symlink = stats.isSymbolicLink();
-      results.push({path, directory, symlink});
+      const entry = {path, directory, symlink};
+      if (opts.stats) entry.stats = stats;
+      results.push(entry);
 
       if (directory) {
         results = results.concat(await rrdir(path, opts));
@@ -114,7 +117,7 @@ module.exports.sync = (dir, opts) => {
     }
 
     let stats;
-    if (scandir) {
+    if (scandir && !opts.stats) {
       stats = entry;
     } else {
       try {
@@ -129,7 +132,9 @@ module.exports.sync = (dir, opts) => {
     if (stats) {
       const directory = stats.isDirectory();
       const symlink = stats.isSymbolicLink();
-      results.push({path, directory, symlink});
+      const entry = {path, directory, symlink};
+      if (opts.stats) entry.stats = stats;
+      results.push(entry);
 
       if (directory) {
         results = results.concat(rrdir.sync(path, opts));
