@@ -7,7 +7,7 @@ const {join} = require("path");
 const multimatch = require("multimatch");
 
 const readdir = promisify(fs.readdir);
-const stat = promisify(fs.stat);
+const lstat = promisify(fs.lstat);
 
 const defaults = {
   encoding: "utf8",
@@ -65,7 +65,7 @@ const rrdir = module.exports = async (dir, opts) => {
       stats = entry;
     } else {
       try {
-        stats = await stat(path);
+        stats = await lstat(path);
       } catch (err) {
         if (opts.strict) {
           throw err;
@@ -127,7 +127,7 @@ module.exports.sync = (dir, opts) => {
       stats = entry;
     } else {
       try {
-        stats = fs.statSync(path);
+        stats = fs.lstatSync(path);
       } catch (err) {
         if (opts.strict) {
           throw err;
