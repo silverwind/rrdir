@@ -7,14 +7,13 @@ Recursively crawls a directory to obtain paths and information on directory/syml
 
 | Test                | Engine          | OS           | Runtime |
 |---------------------|-----------------|--------------|---------|
-| rrdir sync          | Node.js 10.10.0 | Linux 4.18.4 | 0.289s  |
-| rrdir async         | Node.js 10.10.0 | Linux 4.18.4 | 0.400s  |
+| **rrdir** sync      | Node.js 10.10.0 | Linux 4.18.4 | 0.289s  |
+| **rrdir** async     | Node.js 10.10.0 | Linux 4.18.4 | 0.400s  |
 | node-walkdir sync   | Node.js 10.10.0 | Linux 4.18.4 | 0.423s  |
 | node-walkdir async  | Node.js 10.10.0 | Linux 4.18.4 | 1.557s  |
-|---------------------|-----------------|--------------|---------|
-| rrdir sync          | Node.js 8.11.4  | Linux 4.18.4 | 0.383s  |
+| **rrdir** sync      | Node.js 8.11.4  | Linux 4.18.4 | 0.383s  |
 | node-walkdir sync   | Node.js 8.11.4  | Linux 4.18.4 | 0.416s  |
-| rrdir async         | Node.js 8.11.4  | Linux 4.18.4 | 1.148s  |
+| **rrdir** async     | Node.js 8.11.4  | Linux 4.18.4 | 1.148s  |
 | node-walkdir async  | Node.js 8.11.4  | Linux 4.18.4 | 1.813s  |
 
 ## Installation
