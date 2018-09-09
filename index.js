@@ -13,7 +13,7 @@ const defaults = {
   encoding: "utf8",
   strict: false,
   exclude: [],
-  multimatch: {
+  minimatch: {
     matchBase: true,
     dot: true,
     nocomment: true,
@@ -35,7 +35,7 @@ const rrdir = module.exports = async (dir, opts) => {
   let entries = [];
 
   try {
-    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.multimatch).length);
+    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.minimatch).length);
     if (!exclude) {
       entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: scandir});
     }
@@ -53,7 +53,7 @@ const rrdir = module.exports = async (dir, opts) => {
     const name = scandir ? entry.name : entry;
     const path = join(dir, name);
 
-    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.multimatch).length)) {
+    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.minimatch).length)) {
       continue;
     }
 
@@ -91,7 +91,7 @@ module.exports.sync = (dir, opts) => {
 
   let entries;
   try {
-    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.multimatch).length);
+    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.minimatch).length);
     if (!exclude) {
       entries = fs.readdirSync(dir, {encoding: opts.encoding, withFileTypes: scandir});
     }
@@ -109,7 +109,7 @@ module.exports.sync = (dir, opts) => {
     const name = scandir ? entry.name : entry;
     const path = join(dir, name);
 
-    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.multimatch).length)) {
+    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.minimatch).length)) {
       continue;
     }
 
