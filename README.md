@@ -39,7 +39,7 @@ const entries = rrdir.sync('../dir');
 ### `rrdir(dir, [options])`
 ### `rrdir.sync(dir, [options])`
 
-Recursively searches a directory for `entries` contained within. `rrdir` returns a Promise while `rrdir.sync` synchronously returns `entries`. Both functions will throw/reject on unexpected errors, but can optionally ignore errors encountered on individual files.
+Recursively searches a directory for `entries` contained within. Both functions will reject or throw on unexpected errors, but can optionally ignore errors encountered on individual files.
 
 Returns: `entries`, and Array of `entry`.
 
