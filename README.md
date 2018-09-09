@@ -36,20 +36,22 @@ const entries = rrdir.sync('../dir');
 
 ## API
 
-## `rrdir(dir, [options])`
-## `rrdir.sync(dir, [options])`
+### `rrdir(dir, [options])`
+### `rrdir.sync(dir, [options])`
 
-Recursively searches a directory for `entries` contained within. `rrdir` returns a Promise while `rrdir.sync` synchronously returns `entries` with is an array of `entry`. Both functions will throw/reject on unexpected errors, but can optionally ignore errors encountered on individual files.
+Recursively searches a directory for `entries` contained within. `rrdir` returns a Promise while `rrdir.sync` synchronously returns `entries`. Both functions will throw/reject on unexpected errors, but can optionally ignore errors encountered on individual files.
 
-### `entry`
+Returns: `entries`, and Array of `entry`.
 
-- entry.path *string*: The path to the entry, will be relative if `dir` is given relative.
-- entry.directory *boolean*: Boolean indicating whether the entry is a directory.
-- entry.symlink *boolean*: Boolean indicating whether the entry is a symbolic link.
+#### `entry`
 
-### Options
+- `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative.
+- `entry.directory` *boolean*: Boolean indicating whether the entry is a directory.
+- `entry.symlink` *boolean*: Boolean indicating whether the entry is a symbolic link.
 
-- options.strict *boolean*: Whether to throw errors when reading fails. Default: `false`.
-- options.encoding *string*: The encoding to use in the entry's path. Default: `'utf8'`.
+#### Options
+
+- `options.strict` *boolean*: Whether to throw errors when reading fails. Default: `false`.
+- `options.encoding` *string*: The encoding to use in the entry's path. Default: `'utf8'`.
 
 © [silverwind](https://github.com/silverwind), distributed under BSD licence
