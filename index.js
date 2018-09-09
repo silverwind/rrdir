@@ -43,6 +43,8 @@ const rrdir = module.exports = async (dir, opts) => {
   } catch (err) {
     if (opts.strict) {
       throw err;
+    } else {
+      results.push({path: dir, err});
     }
   }
 
@@ -67,6 +69,8 @@ const rrdir = module.exports = async (dir, opts) => {
       } catch (err) {
         if (opts.strict) {
           throw err;
+        } else {
+          results.push({path, err});
         }
       }
     }
@@ -91,8 +95,8 @@ module.exports.sync = (dir, opts) => {
   opts = Object.assign({}, defaults, opts);
 
   let results = [];
+  let entries = [];
 
-  let entries;
   try {
     const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.minimatch).length);
     if (!exclude) {
@@ -101,6 +105,8 @@ module.exports.sync = (dir, opts) => {
   } catch (err) {
     if (opts.strict) {
       throw err;
+    } else {
+      results.push({path: dir, err});
     }
   }
 
@@ -125,6 +131,8 @@ module.exports.sync = (dir, opts) => {
       } catch (err) {
         if (opts.strict) {
           throw err;
+        } else {
+          results.push({path, err});
         }
       }
     }

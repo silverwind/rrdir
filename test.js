@@ -2,15 +2,34 @@
 
 const rrdir = require(".");
 const assert = require("assert");
+const fs = require("fs");
 
 function exit(err) {
   if (err) {
     console.info(err);
   }
+  remove();
   process.exit(err ? 1 : 0);
 }
 
+function remove() {
+  try { fs.unlinkSync("test/subdir/file2"); } catch (err) {}
+  try { fs.unlinkSync("test/file1"); } catch (err) {}
+  try { fs.rmdirSync("test/subdir"); } catch (err) {}
+  try { fs.rmdirSync("test"); } catch (err) {}
+}
+
+function create() {
+  fs.mkdirSync("test");
+  fs.mkdirSync("test/subdir");
+  fs.writeFileSync("test/file1");
+  fs.writeFileSync("test/subdir/file2");
+}
+
 async function main() {
+  remove();
+  create();
+
   const r1 = [
     await rrdir("test"),
     rrdir.sync("test"),

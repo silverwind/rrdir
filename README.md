@@ -40,16 +40,17 @@ Recursively searches a directory for entries contained within. Both functions wi
 #### `entry`
 
 - `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative.
-- `entry.directory` *boolean*: Boolean indicating whether the entry is a directory.
-- `entry.symlink` *boolean*: Boolean indicating whether the entry is a symbolic link.
-- `entry.stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `option.stats` is set.
+- `entry.directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
+- `entry.symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. `undefined` on error.
+- `entry.stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error.
+- `entry.err` *Error*: Any error encountered while reading this entry. `undefined` on success.
 
 #### `options`
 
-- `options.strict` *boolean*: Whether to throw errors when reading fails. Default: `false`.
-- `options.encoding` *string*: The encoding to use in the entry's path. Default: `'utf8'`.
-- `options.exclude` *Array*: Array of path globs to exclude from the result. Default: `[]`.
+- `options.stats` *boolean*: Include `entry.stats`. Will reduce performance. Default: `false`.
+- `options.exclude` *Array*: Path globs to exclude from the result. Default: `[]`.
+- `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
+- `options.encoding` *string*: The encoding to use on `entry.path`. Default: `'utf8'`.
 - `options.minimatch` *Object*: [minimatch options](https://github.com/isaacs/minimatch#options). Default: `{matchBase: true, dot: true, nocomment: true}`.
-- `options.stats` *boolean*: Include a `stats` object in an `entry`. Will reduce performance. Default: `false`.
 
 © [silverwind](https://github.com/silverwind), distributed under BSD licence
