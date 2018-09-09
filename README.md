@@ -35,9 +35,7 @@ const entries = rrdir.sync('../dir'); // => [{path: '../dir/file1', directory: f
 ### `rrdir(dir, [options])`
 ### `rrdir.sync(dir, [options])`
 
-Recursively searches a directory for `entries` contained within. Both functions will reject or throw on unexpected errors, but can optionally ignore errors encountered on individual files.
-
-Returns: `entries`, an array of `entry`.
+Recursively searches a directory for entries contained within. Both functions will reject or throw on unexpected errors, but can optionally ignore errors encountered on individual files. Returns an array of `entry`.
 
 #### `entry`
 
@@ -46,7 +44,7 @@ Returns: `entries`, an array of `entry`.
 - `entry.symlink` *boolean*: Boolean indicating whether the entry is a symbolic link.
 - `entry.stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `option.stats` is set.
 
-#### Options
+#### `options`
 
 - `options.strict` *boolean*: Whether to throw errors when reading fails. Default: `false`.
 - `options.encoding` *string*: The encoding to use in the entry's path. Default: `'utf8'`.
