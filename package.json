@@ -1,6 +1,6 @@
 {
   "name": "rrdir",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The fastest recursive readdir in town",
   "author": "silverwind <me@silverwind.io>",
   "repository": "silverwind/rrdir",
