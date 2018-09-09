@@ -9,7 +9,7 @@
     "test": "make test"
   },
   "engines": {
-    "node": ">=10.10"
+    "node": ">=8"
   },
   "files": [
     "index.js"
