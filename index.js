@@ -67,7 +67,7 @@ const rrdir = module.exports = async (dir, opts) => {
       stats = entry;
     } else {
       try {
-        stats = await opts.followSymlinks ? stat(path) : lstat(path);
+        stats = await (opts.followSymlinks ? stat(path) : lstat(path));
       } catch (err) {
         if (opts.strict) {
           throw err;
