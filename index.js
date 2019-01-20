@@ -7,12 +7,14 @@ const {join} = require("path");
 const multimatch = require("multimatch");
 
 const readdir = promisify(fs.readdir);
+const stat = promisify(fs.stat);
 const lstat = promisify(fs.lstat);
 
 const defaults = {
   encoding: "utf8",
   strict: false,
   stats: false,
+  followSymlinks: true,
   exclude: [],
   minimatch: {
     matchBase: true,
@@ -65,7 +67,7 @@ const rrdir = module.exports = async (dir, opts) => {
       stats = entry;
     } else {
       try {
-        stats = await lstat(path);
+        stats = await opts.followSymlinks ? stat(path) : lstat(path);
       } catch (err) {
         if (opts.strict) {
           throw err;
@@ -127,7 +129,7 @@ module.exports.sync = (dir, opts) => {
       stats = entry;
     } else {
       try {
-        stats = fs.lstatSync(path);
+        stats = opts.followSymlinks ? fs.statSync(path) : fs.lstatSync(path);
       } catch (err) {
         if (opts.strict) {
           throw err;

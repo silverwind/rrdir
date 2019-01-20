@@ -48,6 +48,7 @@ Recursively searches a directory for entries contained within. Both functions wi
 #### `options`
 
 - `options.stats` *boolean*: Include `entry.stats`. Will reduce performance. Default: `false`.
+- `options.followSymlinks` *boolean*: Whether to follow symlinks when `options.stats` is enabled. Default: `true`.
 - `options.exclude` *Array*: Path globs to exclude from the result. Default: `[]`.
 - `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
 - `options.encoding` *string*: The encoding to use on `entry.path`. Default: `'utf8'`.
