@@ -24,10 +24,10 @@
     "directory"
   ],
   "devDependencies": {
-    "eslint": "^5.12.1",
-    "eslint-config-silverwind": "^2.0.14",
-    "updates": "^6.2.0",
-    "ver": "^3.0.1"
+    "eslint": "^5.14.1",
+    "eslint-config-silverwind": "^2.1.0",
+    "updates": "^7.2.0",
+    "ver": "^4.0.1"
   },
   "dependencies": {
     "multimatch": "^3.0.0"
