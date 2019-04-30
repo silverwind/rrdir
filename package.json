@@ -1,7 +1,7 @@
 {
   "name": "rrdir",
   "version": "2.0.1",
-  "description": "The fastest recursive readdir in town",
+  "description": "Recursive directory crawler with a delightful API",
   "author": "silverwind <me@silverwind.io>",
   "repository": "silverwind/rrdir",
   "license": "BSD-2-Clause",
@@ -9,7 +9,7 @@
     "test": "make test"
   },
   "engines": {
-    "node": ">=8"
+    "node": ">=10.10"
   },
   "files": [
     "index.js"
@@ -21,15 +21,16 @@
     "walk",
     "walkdir",
     "crawl",
-    "directory"
+    "directory",
+    "scandir"
   ],
   "devDependencies": {
-    "eslint": "^5.14.1",
-    "eslint-config-silverwind": "^2.1.0",
-    "updates": "^7.2.0",
-    "ver": "^4.0.1"
+    "eslint": "^5.16.0",
+    "eslint-config-silverwind": "^2.1.1",
+    "updates": "^8.0.2",
+    "ver": "^4.2.0"
   },
   "dependencies": {
-    "multimatch": "^3.0.0"
+    "multimatch": "^4.0.0"
   }
 }

@@ -22,10 +22,6 @@ const defaults = {
   }
 };
 
-// uv_fs_scandir / withFileTypes is supported in Node.js 10.10 or greater
-const [_match, major, minor] = (/([0-9]+)\.([0-9]+)\./.exec(process.versions.node) || []);
-const scandir = (Number(major) > 10) || (Number(major) === 10 && Number(minor) >= 10);
-
 const rrdir = module.exports = async (dir, opts) => {
   opts = Object.assign({}, defaults, opts);
 
@@ -39,7 +35,7 @@ const rrdir = module.exports = async (dir, opts) => {
   try {
     const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.minimatch).length);
     if (!exclude) {
-      entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: scandir});
+      entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: true});
     }
   } catch (err) {
     if (opts.strict) {
@@ -54,15 +50,14 @@ const rrdir = module.exports = async (dir, opts) => {
   }
 
   for (const entry of entries) {
-    const name = scandir ? entry.name : entry;
-    const path = join(dir, name);
+    const path = join(dir, entry.name);
 
     if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.minimatch).length)) {
       continue;
     }
 
     let stats;
-    if (scandir && !opts.stats) {
+    if (!opts.stats) {
       stats = entry;
     } else {
       try {
@@ -101,7 +96,7 @@ module.exports.sync = (dir, opts) => {
   try {
     const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.minimatch).length);
     if (!exclude) {
-      entries = fs.readdirSync(dir, {encoding: opts.encoding, withFileTypes: scandir});
+      entries = fs.readdirSync(dir, {encoding: opts.encoding, withFileTypes: true});
     }
   } catch (err) {
     if (opts.strict) {
@@ -116,15 +111,14 @@ module.exports.sync = (dir, opts) => {
   }
 
   for (const entry of entries) {
-    const name = scandir ? entry.name : entry;
-    const path = join(dir, name);
+    const path = join(dir, entry.name);
 
     if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.minimatch).length)) {
       continue;
     }
 
     let stats;
-    if (scandir && !opts.stats) {
+    if (!opts.stats) {
       stats = entry;
     } else {
       try {
@@ -152,4 +146,66 @@ module.exports.sync = (dir, opts) => {
   }
 
   return results;
+};
+
+module.exports.stream = async function* (dir, opts) {
+  opts = Object.assign({}, defaults, opts);
+
+  if (!dir || !typeof dir === "string") {
+    throw new Error(`Expected a string, got '${dir}'`);
+  }
+
+  let entries = [];
+
+  try {
+    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.minimatch).length);
+    if (!exclude) {
+      entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: true});
+    }
+  } catch (err) {
+    if (opts.strict) {
+      throw err;
+    } else {
+      yield {path: dir, err};
+    }
+  }
+
+  if (!entries.length) {
+    return;
+  }
+
+  for (const entry of entries) {
+    const path = join(dir, entry.name);
+
+    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.minimatch).length)) {
+      continue;
+    }
+
+    let stats;
+    if (!opts.stats) {
+      stats = entry;
+    } else {
+      try {
+        stats = await (opts.followSymlinks ? stat(path) : lstat(path));
+      } catch (err) {
+        if (opts.strict) {
+          throw err;
+        } else {
+          yield {path, err};
+        }
+      }
+    }
+
+    if (stats) {
+      const directory = stats.isDirectory();
+      const symlink = stats.isSymbolicLink();
+      const entry = {path, directory, symlink};
+      if (opts.stats) entry.stats = stats;
+      yield entry;
+
+      if (directory) {
+        yield * await rrdir(path, opts);
+      }
+    }
+  }
 };

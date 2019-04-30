@@ -1,5 +1,8 @@
-test:
+lint:
 	npx eslint --color --quiet *.js
+
+test:
+	$(MAKE) lint
 	node --pending-deprecation --trace-deprecation --throw-deprecation --trace-warnings test.js
 
 publish:
@@ -27,4 +30,4 @@ major:
 	$(MAKE) publish
 
 
-.PHONY: test publish update patch minor major
+.PHONY: lint test publish update patch minor major

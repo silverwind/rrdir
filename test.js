@@ -30,11 +30,16 @@ async function main() {
   remove();
   create();
 
-  const r1 = [
-    await rrdir("test"),
-    rrdir.sync("test"),
-  ];
-  for (const result of r1) {
+  let streamResults, opts;
+
+  /* ---------------------------------------------------------------------- */
+
+  opts = undefined;
+
+  streamResults = [];
+  for await (const result of rrdir.stream("test")) streamResults.push(result);
+
+  for (const result of [await rrdir("test"), rrdir.sync("test"), streamResults]) {
     assert.deepStrictEqual(result, [
       {path: "test/file1", directory: false, symlink: false},
       {path: "test/subdir", directory: true, symlink: false},
@@ -42,21 +47,27 @@ async function main() {
     ]);
   }
 
-  const r2 = [
-    await rrdir("test", {exclude: ["subdir"]}),
-    rrdir.sync("test", {exclude: ["subdir"]}),
-  ];
-  for (const result of r2) {
+  /* ---------------------------------------------------------------------- */
+
+  opts = {exclude: ["subdir"]};
+
+  streamResults = [];
+  for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
+
+  for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
     assert.deepStrictEqual(result, [
       {path: "test/file1", directory: false, symlink: false},
     ]);
   }
 
-  const r3 = [
-    await rrdir("test", {exclude: ["subdir"], stats: true}),
-    rrdir.sync("test", {exclude: ["subdir"], stats: true}),
-  ];
-  for (const result of r3) {
+  /* ---------------------------------------------------------------------- */
+
+  opts = {exclude: ["subdir"], stats: true};
+
+  streamResults = [];
+  for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
+
+  for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
     assert.equal(result[0].stats.isFile(), true);
   }
 }
