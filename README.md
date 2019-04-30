@@ -49,20 +49,4 @@ Recursively searches a directory for entries contained within. Will reject or th
 - `options.encoding` *string*: The encoding to use on `entry.path`. Default: `'utf8'`.
 - `options.minimatch` *Object*: [minimatch options](https://github.com/isaacs/minimatch#options). Default: `{matchBase: true, dot: true, nocomment: true}`.
 
-
-#### Benchmarks
-
-Comparison against the `walkdir` module crawling the [Node.js repository](https://github.com/nodejs/node) on a NVMe SSD:
-
-| Test            | Engine          | OS           | Runtime |
-|-----------------|-----------------|--------------|---------|
-| **rrdir** sync  | Node.js 10.10.0 | Linux 4.18.4 | 0.289s  |
-| **rrdir** async | Node.js 10.10.0 | Linux 4.18.4 | 0.400s  |
-| walkdir sync    | Node.js 10.10.0 | Linux 4.18.4 | 0.423s  |
-| walkdir async   | Node.js 10.10.0 | Linux 4.18.4 | 1.557s  |
-| **rrdir** sync  | Node.js 8.11.4  | Linux 4.18.4 | 0.383s  |
-| walkdir sync    | Node.js 8.11.4  | Linux 4.18.4 | 0.416s  |
-| **rrdir** async | Node.js 8.11.4  | Linux 4.18.4 | 1.148s  |
-| walkdir async   | Node.js 8.11.4  | Linux 4.18.4 | 1.813s  |
-
 © [silverwind](https://github.com/silverwind), distributed under BSD licence
