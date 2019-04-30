@@ -22,21 +22,27 @@ const defaults = {
   }
 };
 
-const rrdir = module.exports = async (dir, opts) => {
-  opts = Object.assign({}, defaults, opts);
+function isExcluded(dir, opts) {
+  if (!dir || !opts || !opts.exclude || !opts.exclude.length) return false;
+  return opts.exclude.length && !!multimatch(dir, opts.exclude, opts.minimatch).length;
+}
 
+function handleOpts(dir, opts) {
   if (!dir || !typeof dir === "string") {
     throw new Error(`Expected a string, got '${dir}'`);
   }
+  return Object.assign({}, defaults, opts);
+}
+
+const rrdir = module.exports = async (dir, opts) => {
+  if (isExcluded(dir, opts)) return [];
+  opts = handleOpts(dir, opts);
 
   let results = [];
   let entries = [];
 
   try {
-    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.minimatch).length);
-    if (!exclude) {
-      entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: true});
-    }
+    entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -51,10 +57,7 @@ const rrdir = module.exports = async (dir, opts) => {
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
-
-    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.minimatch).length)) {
-      continue;
-    }
+    if (isExcluded(path, opts)) continue;
 
     let stats;
     if (!opts.stats) {
@@ -88,16 +91,14 @@ const rrdir = module.exports = async (dir, opts) => {
 };
 
 module.exports.sync = (dir, opts) => {
-  opts = Object.assign({}, defaults, opts);
+  if (isExcluded(dir, opts)) return [];
+  opts = handleOpts(dir, opts);
 
   let results = [];
   let entries = [];
 
   try {
-    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.minimatch).length);
-    if (!exclude) {
-      entries = fs.readdirSync(dir, {encoding: opts.encoding, withFileTypes: true});
-    }
+    entries = fs.readdirSync(dir, {encoding: opts.encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -112,10 +113,7 @@ module.exports.sync = (dir, opts) => {
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
-
-    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.minimatch).length)) {
-      continue;
-    }
+    if (isExcluded(path, opts)) continue;
 
     let stats;
     if (!opts.stats) {
@@ -149,19 +147,13 @@ module.exports.sync = (dir, opts) => {
 };
 
 module.exports.stream = async function* (dir, opts) {
-  opts = Object.assign({}, defaults, opts);
-
-  if (!dir || !typeof dir === "string") {
-    throw new Error(`Expected a string, got '${dir}'`);
-  }
+  if (isExcluded(dir, opts)) return;
+  opts = handleOpts(dir, opts);
 
   let entries = [];
 
   try {
-    const exclude = (opts.exclude.length) && !!(multimatch(dir, opts.exclude, opts.minimatch).length);
-    if (!exclude) {
-      entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: true});
-    }
+    entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -176,10 +168,7 @@ module.exports.stream = async function* (dir, opts) {
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
-
-    if (opts.exclude.length && !!(multimatch(path, opts.exclude, opts.minimatch).length)) {
-      continue;
-    }
+    if (isExcluded(path, opts)) continue;
 
     let stats;
     if (!opts.stats) {
