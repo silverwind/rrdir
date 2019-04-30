@@ -30,15 +30,7 @@ for await (const entry of rrdir.stream("../dir")) {
 ### `rrdir.sync(dir, [options])`
 ### `rrdir.stream(dir, [options])`
 
-Recursively searches a directory for entries contained within. Will reject or throw on unexpected errors, but can optionally ignore errors encountered on individual files. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields individual entries.
-
-#### `entry`
-
-- `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative.
-- `entry.directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
-- `entry.symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. `undefined` on error.
-- `entry.stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error.
-- `entry.err` *Error*: Any error encountered while reading this entry. `undefined` on success.
+Recursively searches a directory for entries contained within. Will reject or throw on unexpected errors, but can optionally ignore errors encountered on individual files. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields `entry`.
 
 #### `options`
 
@@ -48,5 +40,13 @@ Recursively searches a directory for entries contained within. Will reject or th
 - `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
 - `options.encoding` *string*: The encoding to use on `entry.path`. Default: `'utf8'`.
 - `options.minimatch` *Object*: [minimatch options](https://github.com/isaacs/minimatch#options). Default: `{matchBase: true, dot: true, nocomment: true}`.
+
+#### `entry`
+
+- `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative.
+- `entry.directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
+- `entry.symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. `undefined` on error.
+- `entry.stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error.
+- `entry.err` *Error*: Any error encountered while reading this entry. `undefined` on success.
 
 © [silverwind](https://github.com/silverwind), distributed under BSD licence
