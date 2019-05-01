@@ -24,7 +24,7 @@ const defaults = {
 
 function isExcluded(dir, opts) {
   if (!dir || !opts || !opts.exclude || !opts.exclude.length) return false;
-  return opts.exclude.length && !!multimatch(dir, opts.exclude, opts.minimatch).length;
+  return Boolean(multimatch(dir, opts.exclude, opts.minimatch).length);
 }
 
 function build(dirent, path, stats) {
