@@ -27,18 +27,16 @@ function isExcluded(dir, opts) {
   return opts.exclude.length && !!multimatch(dir, opts.exclude, opts.minimatch).length;
 }
 
-function handleOpts(dir, opts) {
-  if (!dir || !typeof dir === "string") {
-    throw new Error(`Expected a string, got '${dir}'`);
-  }
-  return Object.assign({}, defaults, opts);
+function build(dirent, path, stats) {
+  const entry = {path, directory: dirent.isDirectory(), symlink: dirent.isSymbolicLink()};
+  if (stats) entry.stats = stats;
+  return entry;
 }
 
 const rrdir = module.exports = async (dir, opts) => {
   if (isExcluded(dir, opts)) return [];
-  opts = handleOpts(dir, opts);
-
-  let results = [];
+  opts = Object.assign({}, defaults, opts);
+  const results = [];
   let entries = [];
 
   try {
@@ -50,19 +48,14 @@ const rrdir = module.exports = async (dir, opts) => {
       results.push({path: dir, err});
     }
   }
-
-  if (!entries.length) {
-    return entries;
-  }
+  if (!entries.length) return results;
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isExcluded(path, opts)) continue;
 
     let stats;
-    if (!opts.stats) {
-      stats = entry;
-    } else {
+    if (opts.stats) {
       try {
         stats = await (opts.followSymlinks ? stat(path) : lstat(path));
       } catch (err) {
@@ -74,17 +67,8 @@ const rrdir = module.exports = async (dir, opts) => {
       }
     }
 
-    if (stats) {
-      const directory = stats.isDirectory();
-      const symlink = stats.isSymbolicLink();
-      const entry = {path, directory, symlink};
-      if (opts.stats) entry.stats = stats;
-      results.push(entry);
-
-      if (directory) {
-        results = results.concat(await rrdir(path, opts));
-      }
-    }
+    results.push(build(entry, path, stats));
+    if (entry.isDirectory()) results.push(...await rrdir(path, opts));
   }
 
   return results;
@@ -92,9 +76,8 @@ const rrdir = module.exports = async (dir, opts) => {
 
 module.exports.sync = (dir, opts) => {
   if (isExcluded(dir, opts)) return [];
-  opts = handleOpts(dir, opts);
-
-  let results = [];
+  opts = Object.assign({}, defaults, opts);
+  const results = [];
   let entries = [];
 
   try {
@@ -106,19 +89,14 @@ module.exports.sync = (dir, opts) => {
       results.push({path: dir, err});
     }
   }
-
-  if (!entries.length) {
-    return entries;
-  }
+  if (!entries.length) return results;
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isExcluded(path, opts)) continue;
 
     let stats;
-    if (!opts.stats) {
-      stats = entry;
-    } else {
+    if (opts.stats) {
       try {
         stats = opts.followSymlinks ? fs.statSync(path) : fs.lstatSync(path);
       } catch (err) {
@@ -130,17 +108,8 @@ module.exports.sync = (dir, opts) => {
       }
     }
 
-    if (stats) {
-      const directory = stats.isDirectory();
-      const symlink = stats.isSymbolicLink();
-      const entry = {path, directory, symlink};
-      if (opts.stats) entry.stats = stats;
-      results.push(entry);
-
-      if (directory) {
-        results = results.concat(rrdir.sync(path, opts));
-      }
-    }
+    results.push(build(entry, path, stats));
+    if (entry.isDirectory()) results.push(...rrdir.sync(path, opts));
   }
 
   return results;
@@ -148,8 +117,7 @@ module.exports.sync = (dir, opts) => {
 
 module.exports.stream = async function* (dir, opts) {
   if (isExcluded(dir, opts)) return;
-  opts = handleOpts(dir, opts);
-
+  opts = Object.assign({}, defaults, opts);
   let entries = [];
 
   try {
@@ -161,19 +129,14 @@ module.exports.stream = async function* (dir, opts) {
       yield {path: dir, err};
     }
   }
-
-  if (!entries.length) {
-    return;
-  }
+  if (!entries.length) return;
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isExcluded(path, opts)) continue;
 
     let stats;
-    if (!opts.stats) {
-      stats = entry;
-    } else {
+    if (opts.stats) {
       try {
         stats = await (opts.followSymlinks ? stat(path) : lstat(path));
       } catch (err) {
@@ -185,16 +148,7 @@ module.exports.stream = async function* (dir, opts) {
       }
     }
 
-    if (stats) {
-      const directory = stats.isDirectory();
-      const symlink = stats.isSymbolicLink();
-      const entry = {path, directory, symlink};
-      if (opts.stats) entry.stats = stats;
-      yield entry;
-
-      if (directory) {
-        yield* await rrdir.stream(path, opts);
-      }
-    }
+    yield build(entry, path, stats);
+    if (entry.isDirectory()) yield* await rrdir.stream(path, opts);
   }
 };

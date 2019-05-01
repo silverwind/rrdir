@@ -14,23 +14,24 @@
   "files": [
     "index.js"
   ],
-  "keywords": [
-    "recursive readdir",
-    "readdir",
-    "recursive",
-    "walk",
-    "walkdir",
-    "crawl",
-    "directory",
-    "scandir"
-  ],
+  "dependencies": {
+    "multimatch": "^4.0.0"
+  },
   "devDependencies": {
     "eslint": "^5.16.0",
     "eslint-config-silverwind": "^2.1.3",
     "updates": "^8.0.2",
     "ver": "^4.2.0"
   },
-  "dependencies": {
-    "multimatch": "^4.0.0"
-  }
+  "keywords": [
+    "recursive readdir",
+    "readdir",
+    "recursive",
+    "walk",
+    "walkdir",
+    "directory",
+    "crawl",
+    "crawler",
+    "scandir"
+  ]
 }

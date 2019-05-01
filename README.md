@@ -30,11 +30,11 @@ for await (const entry of rrdir.stream("../dir")) {
 ### `rrdir.sync(dir, [options])`
 ### `rrdir.stream(dir, [options])`
 
-Recursively searches a directory for entries contained within. Will reject or throw on unexpected errors, but can optionally ignore errors encountered on individual files. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields `entry`.
+Recursively crawls a directory for entries contained within. By default, errors while reading files will be ignored and put in `entry.err`. The functions can throw on other unexpected conditions. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields `entry`.
 
 #### `options`
 
-- `options.stats` *boolean*: Include `entry.stats`. Will reduce performance. Default: `false`.
+- `options.stats` *boolean*: Whether to include `entry.stats`. Will reduce performance. Default: `false`.
 - `options.followSymlinks` *boolean*: Whether to follow symlinks when `options.stats` is enabled. Default: `true`.
 - `options.exclude` *Array*: Path globs to exclude from the result. Default: `[]`.
 - `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
@@ -43,7 +43,7 @@ Recursively searches a directory for entries contained within. Will reject or th
 
 #### `entry`
 
-- `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative.
+- `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative. Always present.
 - `entry.directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
 - `entry.symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. `undefined` on error.
 - `entry.stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error.
