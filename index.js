@@ -193,7 +193,7 @@ module.exports.stream = async function* (dir, opts) {
       yield entry;
 
       if (directory) {
-        yield * await rrdir.stream(path, opts);
+        yield* await rrdir.stream(path, opts);
       }
     }
   }
