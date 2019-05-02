@@ -30,7 +30,7 @@ for await (const entry of rrdir.stream("../dir")) {
 ### `rrdir.sync(dir, [options])`
 ### `rrdir.stream(dir, [options])`
 
-Recursively crawls a directory for entries contained within. By default, errors while reading files will be ignored and put in `entry.err`. The functions can throw on other unexpected conditions. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields `entry`.
+Recursively crawls a directory for entries contained within. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields `entry`. By default, errors while reading files will be ignored and put in `entry.err`.
 
 #### `options`
 

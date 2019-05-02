@@ -59,15 +59,14 @@ const rrdir = module.exports = async (dir, opts) => {
       try {
         stats = await (opts.followSymlinks ? stat(path) : lstat(path));
       } catch (err) {
-        if (opts.strict) {
-          throw err;
-        } else {
-          results.push({path, err});
-        }
+        if (opts.strict) throw err;
+        results.push({path, err});
       }
+      if (stats) results.push(build(entry, path, stats));
+    } else {
+      results.push(build(entry, path));
     }
 
-    results.push(build(entry, path, stats));
     if (entry.isDirectory()) results.push(...await rrdir(path, opts));
   }
 
@@ -100,15 +99,14 @@ module.exports.sync = (dir, opts) => {
       try {
         stats = opts.followSymlinks ? fs.statSync(path) : fs.lstatSync(path);
       } catch (err) {
-        if (opts.strict) {
-          throw err;
-        } else {
-          results.push({path, err});
-        }
+        if (opts.strict) throw err;
+        results.push({path, err});
       }
+      if (stats) results.push(build(entry, path, stats));
+    } else {
+      results.push(build(entry, path));
     }
 
-    results.push(build(entry, path, stats));
     if (entry.isDirectory()) results.push(...rrdir.sync(path, opts));
   }
 
@@ -140,15 +138,14 @@ module.exports.stream = async function* (dir, opts) {
       try {
         stats = await (opts.followSymlinks ? stat(path) : lstat(path));
       } catch (err) {
-        if (opts.strict) {
-          throw err;
-        } else {
-          yield {path, err};
-        }
+        if (opts.strict) throw err;
+        yield {path, err};
       }
+      if (stats) yield build(entry, path, stats);
+    } else {
+      yield build(entry, path);
     }
 
-    yield build(entry, path, stats);
     if (entry.isDirectory()) yield* await rrdir.stream(path, opts);
   }
 };
