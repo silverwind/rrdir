@@ -17,9 +17,7 @@ const defaults = {
   exclude: [],
   include: [],
   minimatch: {
-    matchBase: true,
     dot: true,
-    nocomment: true,
   }
 };
 

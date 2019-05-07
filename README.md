@@ -42,7 +42,7 @@ Recursively reader a directory for entries contained within. `rrdir` and `rrdir.
 - `options.include` *Array*: File globs to include. When specified, will stop yielding directories. Default: `[]`.
 - `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
 - `options.encoding` *string*: The encoding to use on `entry.path`. Default: `'utf8'`.
-- `options.minimatch` *Object*: [minimatch options](https://github.com/isaacs/minimatch#options). Default: `{matchBase: true, dot: true, nocomment: true}`.
+- `options.minimatch` *Object*: [minimatch options](https://github.com/isaacs/minimatch#options). Default: `{dot: true}`.
 
 #### `entry`
 
