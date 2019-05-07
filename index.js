@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const {promisify} = require("util");
-const {join} = require("path");
+const {join, basename} = require("path");
 const multimatch = require("multimatch");
 
 const readdir = promisify(fs.readdir);
@@ -15,6 +15,7 @@ const defaults = {
   stats: false,
   followSymlinks: true,
   exclude: [],
+  include: [],
   minimatch: {
     matchBase: true,
     dot: true,
@@ -22,9 +23,20 @@ const defaults = {
   }
 };
 
-function isExcluded(dir, opts) {
-  if (!dir || !opts || !opts.exclude || !opts.exclude.length) return false;
-  return Boolean(multimatch(dir, opts.exclude, opts.minimatch).length);
+function isExcluded(path, opts) {
+  if (!opts || !opts.exclude || !opts.exclude.length) return false;
+  return Boolean(multimatch(basename(path), opts.exclude, opts.minimatch).length);
+}
+
+function isIncluded(entry, opts) {
+  if (!opts || !opts.include || !opts.include.length || entry.isDirectory()) return true;
+  return Boolean(multimatch(entry.name, opts.include, opts.minimatch).length);
+}
+
+// when a include pattern is specified, stop yielding directories
+function canInclude(entry, opts) {
+  if (!opts.include || !opts.include.length) return true;
+  return !entry.isDirectory();
 }
 
 function build(dirent, path, stats) {
@@ -53,6 +65,7 @@ const rrdir = module.exports = async (dir, opts) => {
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isExcluded(path, opts)) continue;
+    if (!isIncluded(entry, opts)) continue;
 
     let stats;
     if (opts.stats) {
@@ -62,9 +75,9 @@ const rrdir = module.exports = async (dir, opts) => {
         if (opts.strict) throw err;
         results.push({path, err});
       }
-      if (stats) results.push(build(entry, path, stats));
+      if (stats && canInclude(entry, opts)) results.push(build(entry, path, stats));
     } else {
-      results.push(build(entry, path));
+      if (canInclude(entry, opts)) results.push(build(entry, path));
     }
 
     if (entry.isDirectory()) results.push(...await rrdir(path, opts));
@@ -93,6 +106,7 @@ module.exports.sync = (dir, opts) => {
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isExcluded(path, opts)) continue;
+    if (!isIncluded(entry, opts)) continue;
 
     let stats;
     if (opts.stats) {
@@ -102,9 +116,9 @@ module.exports.sync = (dir, opts) => {
         if (opts.strict) throw err;
         results.push({path, err});
       }
-      if (stats) results.push(build(entry, path, stats));
+      if (stats && canInclude(entry, opts)) results.push(build(entry, path, stats));
     } else {
-      results.push(build(entry, path));
+      if (canInclude(entry, opts)) results.push(build(entry, path));
     }
 
     if (entry.isDirectory()) results.push(...rrdir.sync(path, opts));
@@ -132,6 +146,7 @@ module.exports.stream = async function* (dir, opts) {
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isExcluded(path, opts)) continue;
+    if (!isIncluded(entry, opts)) continue;
 
     let stats;
     if (opts.stats) {
@@ -141,9 +156,9 @@ module.exports.stream = async function* (dir, opts) {
         if (opts.strict) throw err;
         yield {path, err};
       }
-      if (stats) yield build(entry, path, stats);
+      if (stats && canInclude(entry, opts)) yield build(entry, path, stats);
     } else {
-      yield build(entry, path);
+      if (canInclude(entry, opts)) yield build(entry, path);
     }
 
     if (entry.isDirectory()) yield* await rrdir.stream(path, opts);
