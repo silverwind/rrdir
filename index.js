@@ -3,7 +3,7 @@
 const fs = require("fs");
 const {promisify} = require("util");
 const {join, basename} = require("path");
-const multimatch = require("multimatch");
+const minimatch = require("minimatch");
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
@@ -23,12 +23,23 @@ const defaults = {
 
 function isExcluded(path, opts) {
   if (!opts || !opts.exclude || !opts.exclude.length) return false;
-  return Boolean(multimatch(basename(path), opts.exclude, opts.minimatch).length);
+  const name = basename(path);
+  for (const pattern of opts.exclude) {
+    if (minimatch(name, pattern, opts.minimatch)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function isIncluded(entry, opts) {
   if (!opts || !opts.include || !opts.include.length || entry.isDirectory()) return true;
-  return Boolean(multimatch(entry.name, opts.include, opts.minimatch).length);
+  for (const pattern of opts.include) {
+    if (minimatch(entry.name, pattern, opts.minimatch)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // when a include pattern is specified, stop yielding directories
