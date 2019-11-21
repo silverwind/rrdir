@@ -21,7 +21,7 @@
     "eslint": "6.6.0",
     "eslint-config-silverwind": "5.0.0",
     "updates": "9.1.0",
-    "ver": "6.0.2"
+    "versions": "7.0.2"
   },
   "keywords": [
     "recursive readdir",
