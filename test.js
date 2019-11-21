@@ -13,12 +13,12 @@ function exit(err) {
 }
 
 function remove() {
-  try { fs.unlinkSync("test/subdir/file"); } catch (err) {}
-  try { fs.rmdirSync("test/subdir"); } catch (err) {}
-  try { fs.unlinkSync("test/subdir2/file"); } catch (err) {}
-  try { fs.rmdirSync("test/subdir2"); } catch (err) {}
-  try { fs.unlinkSync("test/file"); } catch (err) {}
-  try { fs.rmdirSync("test"); } catch (err) {}
+  try { fs.unlinkSync("test/subdir/file") } catch (err) {}
+  try { fs.rmdirSync("test/subdir") } catch (err) {}
+  try { fs.unlinkSync("test/subdir2/file") } catch (err) {}
+  try { fs.rmdirSync("test/subdir2") } catch (err) {}
+  try { fs.unlinkSync("test/file") } catch (err) {}
+  try { fs.rmdirSync("test") } catch (err) {}
 }
 
 function create() {
