@@ -1,13 +1,9 @@
 "use strict";
 
-const fs = require("fs");
-const {promisify} = require("util");
+const {readdir, stat, lstat} = require("fs").promises;
+const {readdirSync, statSync, lstatSync} = require("fs");
 const {join, basename} = require("path");
 const minimatch = require("minimatch");
-
-const readdir = promisify(fs.readdir);
-const stat = promisify(fs.stat);
-const lstat = promisify(fs.lstat);
 
 const defaults = {
   encoding: "utf8",
@@ -102,7 +98,7 @@ module.exports.sync = (dir, opts) => {
   let entries = [];
 
   try {
-    entries = fs.readdirSync(dir, {encoding: opts.encoding, withFileTypes: true});
+    entries = readdirSync(dir, {encoding: opts.encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -120,7 +116,7 @@ module.exports.sync = (dir, opts) => {
     let stats;
     if (opts.stats) {
       try {
-        stats = opts.followSymlinks ? fs.statSync(path) : fs.lstatSync(path);
+        stats = opts.followSymlinks ? statSync(path) : lstatSync(path);
       } catch (err) {
         if (opts.strict) throw err;
         results.push({path, err});
