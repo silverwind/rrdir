@@ -3,7 +3,7 @@
 const {readdir, stat, lstat} = require("fs").promises;
 const {readdirSync, statSync, lstatSync} = require("fs");
 const {join, basename} = require("path");
-const minimatch = require("minimatch");
+const picomatch = require("picomatch");
 
 const defaults = {
   encoding: "utf8",
@@ -12,30 +12,19 @@ const defaults = {
   followSymlinks: true,
   exclude: [],
   include: [],
-  minimatch: {
+  match: {
     dot: true,
   }
 };
 
-function isExcluded(path, opts) {
-  if (!opts || !opts.exclude || !opts.exclude.length) return false;
-  const name = basename(path);
-  for (const pattern of opts.exclude) {
-    if (minimatch(name, pattern, opts.minimatch)) {
-      return true;
-    }
-  }
-  return false;
+function isExcluded(path, matcher) {
+  if (!matcher) return false;
+  return matcher(basename(path));
 }
 
-function isIncluded(entry, opts) {
-  if (!opts || !opts.include || !opts.include.length || entry.isDirectory()) return true;
-  for (const pattern of opts.include) {
-    if (minimatch(entry.name, pattern, opts.minimatch)) {
-      return true;
-    }
-  }
-  return false;
+function isIncluded(entry, matcher) {
+  if (!matcher || entry.isDirectory()) return true;
+  return matcher(entry.name);
 }
 
 // when a include pattern is specified, stop yielding directories
@@ -50,8 +39,24 @@ function build(dirent, path, stats) {
   return entry;
 }
 
+function makeMatchers(opts) {
+  let includeMatcher = null;
+  let excludeMatcher = null;
+
+  if (opts && opts.include && opts.include.length) {
+    includeMatcher = picomatch(opts.include, opts.match);
+  }
+
+  if (opts && opts.exclude && opts.exclude.length) {
+    excludeMatcher = picomatch(opts.exclude, opts.match);
+  }
+
+  return {includeMatcher, excludeMatcher};
+}
+
 const rrdir = module.exports = async (dir, opts) => {
-  if (isExcluded(dir, opts)) return [];
+  const {includeMatcher, excludeMatcher} = makeMatchers(opts);
+  if (isExcluded(dir, excludeMatcher)) return [];
   opts = Object.assign({}, defaults, opts);
   const results = [];
   let entries = [];
@@ -69,8 +74,8 @@ const rrdir = module.exports = async (dir, opts) => {
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
-    if (isExcluded(path, opts)) continue;
-    if (!isIncluded(entry, opts)) continue;
+    if (isExcluded(path, excludeMatcher)) continue;
+    if (!isIncluded(entry, includeMatcher)) continue;
 
     let stats;
     if (opts.stats) {
@@ -92,7 +97,8 @@ const rrdir = module.exports = async (dir, opts) => {
 };
 
 module.exports.sync = (dir, opts) => {
-  if (isExcluded(dir, opts)) return [];
+  const {includeMatcher, excludeMatcher} = makeMatchers(opts);
+  if (isExcluded(dir, excludeMatcher)) return [];
   opts = Object.assign({}, defaults, opts);
   const results = [];
   let entries = [];
@@ -110,8 +116,8 @@ module.exports.sync = (dir, opts) => {
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
-    if (isExcluded(path, opts)) continue;
-    if (!isIncluded(entry, opts)) continue;
+    if (isExcluded(path, excludeMatcher)) continue;
+    if (!isIncluded(entry, includeMatcher)) continue;
 
     let stats;
     if (opts.stats) {
@@ -133,7 +139,8 @@ module.exports.sync = (dir, opts) => {
 };
 
 module.exports.stream = async function* (dir, opts) {
-  if (isExcluded(dir, opts)) return;
+  const {includeMatcher, excludeMatcher} = makeMatchers(opts);
+  if (isExcluded(dir, excludeMatcher)) return;
   opts = Object.assign({}, defaults, opts);
   let entries = [];
 
@@ -150,8 +157,8 @@ module.exports.stream = async function* (dir, opts) {
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
-    if (isExcluded(path, opts)) continue;
-    if (!isIncluded(entry, opts)) continue;
+    if (isExcluded(path, excludeMatcher)) continue;
+    if (!isIncluded(entry, includeMatcher)) continue;
 
     let stats;
     if (opts.stats) {

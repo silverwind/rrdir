@@ -3,7 +3,7 @@
 
 > Recursive directory reader with a delightful API
 
-`rrdir` recursively reads a directory and returns entries within via an async iterator or array. Memory usage is `O(1)` for the iterator and `O(n)` for the array variants. It takes advantage of Node.js `withFileTypes` for increased performance and can typically iterate millions of files in a matter of seconds on a fast disk.
+`rrdir` recursively reads a directory and returns entries within via an async iterator or array. It has minimal dependencies and can typically iterate millions of files in a matter of seconds. Memory usage is `O(1)` for the iterator and `O(n)` for the array variants.
 
 ## Installation
 ```console
@@ -42,7 +42,7 @@ Recursively reader a directory for entries contained within. `rrdir` and `rrdir.
 - `options.include` *Array*: File globs to include. When specified, will stop yielding directories. Default: `[]`.
 - `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
 - `options.encoding` *string*: The encoding to use on `entry.path`. Default: `'utf8'`.
-- `options.minimatch` *Object*: [minimatch options](https://github.com/isaacs/minimatch#options). Default: `{dot: true}`.
+- `options.match` *Object*: [picomatch options](https://github.com/micromatch/picomatch#options). Default: `{dot: true}`.
 
 #### `entry`
 

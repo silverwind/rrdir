@@ -15,7 +15,7 @@
     "index.js"
   ],
   "dependencies": {
-    "minimatch": "^3.0.4"
+    "picomatch": "^2.1.1"
   },
   "devDependencies": {
     "eslint": "6.7.2",
