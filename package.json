@@ -18,10 +18,10 @@
     "minimatch": "^3.0.4"
   },
   "devDependencies": {
-    "eslint": "6.6.0",
-    "eslint-config-silverwind": "5.0.0",
-    "updates": "9.1.0",
-    "versions": "7.0.2"
+    "eslint": "6.7.2",
+    "eslint-config-silverwind": "5.1.1",
+    "updates": "9.3.3",
+    "versions": "7.0.5"
   },
   "keywords": [
     "recursive readdir",
