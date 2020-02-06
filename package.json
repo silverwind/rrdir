@@ -15,11 +15,11 @@
     "index.js"
   ],
   "dependencies": {
-    "picomatch": "^2.1.1"
+    "picomatch": "^2.2.1"
   },
   "devDependencies": {
-    "eslint": "6.7.2",
-    "eslint-config-silverwind": "5.1.1",
+    "eslint": "6.8.0",
+    "eslint-config-silverwind": "6.0.2",
     "updates": "9.3.3",
     "versions": "7.0.5"
   },
