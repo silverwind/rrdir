@@ -32,7 +32,7 @@ const entries = rrdir.sync("dir");
 ### `rrdir.stream(dir, [options])`
 ### `rrdir.sync(dir, [options])`
 
-Recursively reader a directory for entries contained within. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields `entry`. By default, errors while reading files will be ignored and put in `entry.err`.
+Recursively read a directory for entries contained within. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields `entry`. By default, errors while reading files will be ignored and put in `entry.err`.
 
 #### `options`
 
