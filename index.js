@@ -14,7 +14,7 @@ const defaults = {
   include: [],
   match: {
     dot: true,
-  }
+  },
 };
 
 function isExcluded(path, matcher) {
