@@ -2,7 +2,7 @@
 
 const {readdir, stat, lstat} = require("fs").promises;
 const {readdirSync, statSync, lstatSync} = require("fs");
-const {join, basename} = require("path");
+const {join} = require("path");
 const picomatch = require("picomatch");
 
 const defaults = {
@@ -19,12 +19,12 @@ const defaults = {
 
 function isExcluded(path, matcher) {
   if (!matcher) return false;
-  return matcher(basename(path));
+  return matcher(path);
 }
 
-function isIncluded(entry, matcher) {
+function isIncluded(path, entry, matcher) {
   if (!matcher || entry.isDirectory()) return true;
-  return matcher(entry.name);
+  return matcher(path);
 }
 
 // when a include pattern is specified, stop yielding directories
@@ -75,7 +75,7 @@ const rrdir = module.exports = async (dir, opts) => {
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isExcluded(path, excludeMatcher)) continue;
-    if (!isIncluded(entry, includeMatcher)) continue;
+    if (!isIncluded(path, entry, includeMatcher)) continue;
 
     let stats;
     if (opts.stats) {
@@ -117,7 +117,7 @@ module.exports.sync = (dir, opts) => {
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isExcluded(path, excludeMatcher)) continue;
-    if (!isIncluded(entry, includeMatcher)) continue;
+    if (!isIncluded(path, entry, includeMatcher)) continue;
 
     let stats;
     if (opts.stats) {
@@ -158,7 +158,7 @@ module.exports.stream = async function* (dir, opts) {
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isExcluded(path, excludeMatcher)) continue;
-    if (!isIncluded(entry, includeMatcher)) continue;
+    if (!isIncluded(path, entry, includeMatcher)) continue;
 
     let stats;
     if (opts.stats) {

@@ -55,7 +55,7 @@ async function main() {
 
   /* ---------------------------------------------------------------------- */
 
-  opts = {exclude: ["subdir"]};
+  opts = {exclude: ["**/subdir"]};
 
   streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
@@ -70,7 +70,7 @@ async function main() {
 
   /* ---------------------------------------------------------------------- */
 
-  opts = {exclude: ["file", "subdir2"]};
+  opts = {exclude: ["**/file", "**/subdir2"]};
 
   streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
@@ -83,7 +83,7 @@ async function main() {
 
   /* ---------------------------------------------------------------------- */
 
-  opts = {exclude: ["sub*"]};
+  opts = {exclude: ["**/sub*"]};
 
   streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
@@ -96,7 +96,7 @@ async function main() {
 
   /* ---------------------------------------------------------------------- */
 
-  opts = {include: ["f*"]};
+  opts = {include: ["**/f*"]};
 
   streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
@@ -111,7 +111,7 @@ async function main() {
 
   /* ---------------------------------------------------------------------- */
 
-  opts = {exclude: ["subdir", "subdir2"]};
+  opts = {exclude: ["**/subdir", "**/subdir2"]};
 
   streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
@@ -124,7 +124,7 @@ async function main() {
 
   /* ---------------------------------------------------------------------- */
 
-  opts = {exclude: ["subdir", "subdir2"], stats: true};
+  opts = {exclude: ["**/subdir", "**/subdir2"], stats: true};
 
   streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
@@ -135,7 +135,7 @@ async function main() {
 
   /* ---------------------------------------------------------------------- */
 
-  opts = {exclude: ["subdir2"], include: ["file"]};
+  opts = {exclude: ["**/subdir2"], include: ["**/file"]};
 
   streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);

@@ -44,6 +44,8 @@ Recursively read a directory for entries contained within. `rrdir` and `rrdir.sy
 - `options.encoding` *string*: The encoding to use on `entry.path`. Default: `'utf8'`.
 - `options.match` *Object*: [picomatch options](https://github.com/micromatch/picomatch#options). Default: `{dot: true}`.
 
+`include` and `exclude` globs match against the full directory, to match individial files by name, use `**/filename` or `**/*.js`.
+
 #### `entry`
 
 - `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative. Always present.
