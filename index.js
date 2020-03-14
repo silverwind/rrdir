@@ -16,6 +16,10 @@ const defaults = {
   },
 };
 
+const readDirOpts = {
+  withFileTypes: true,
+};
+
 function isExcluded(path, matcher) {
   if (!matcher) return false;
   return matcher(path);
@@ -40,7 +44,7 @@ function makeMatchers({include, exclude, match}) {
 }
 
 const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
-  if (!includeMatcher) {
+  if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
   }
@@ -49,7 +53,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
   let entries = [];
 
   try {
-    entries = await readdir(dir, {withFileTypes: true});
+    entries = await readdir(dir, readDirOpts);
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -82,7 +86,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
 };
 
 rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
-  if (!includeMatcher) {
+  if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
   }
@@ -91,7 +95,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
   let entries = [];
 
   try {
-    entries = readdirSync(dir, {withFileTypes: true});
+    entries = readdirSync(dir, readDirOpts);
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -125,7 +129,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
 };
 
 rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) {
-  if (!includeMatcher) {
+  if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
   }
@@ -133,7 +137,7 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
   let entries = [];
 
   try {
-    entries = await readdir(dir, {withFileTypes: true});
+    entries = await readdir(dir, readDirOpts);
   } catch (err) {
     if (opts.strict) {
       throw err;
