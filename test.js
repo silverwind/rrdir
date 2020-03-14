@@ -1,11 +1,17 @@
 "use strict";
 
 const rrdir = require(".");
-const {writeFileSync, unlinkSync, rmdirSync, mkdirSync} = require("fs");
+const tempy = require("tempy");
+const {chdir, cwd: cwdFn} = require("process");
 const {join} = require("path");
 const {test, expect, beforeAll, afterAll} = global;
+const {writeFileSync, unlinkSync, rmdirSync, mkdirSync} = require("fs");
+
+const testDir = tempy.directory();
+const cwd = cwdFn();
 
 beforeAll(() => {
+  chdir(testDir);
   mkdirSync("test");
   mkdirSync("test/subdir");
   mkdirSync("test/subdir2");
@@ -21,6 +27,7 @@ afterAll(() => {
   try { rmdirSync("test/subdir2") } catch (err) {}
   try { unlinkSync("test/file") } catch (err) {}
   try { rmdirSync("test") } catch (err) {}
+  chdir(cwd);
 });
 
 test("basic", async () => {
