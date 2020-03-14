@@ -31,70 +31,81 @@ afterAll(() => {
 });
 
 test("basic", async () => {
+  const expected = [
+    {path: join("test/file"), directory: false, symlink: false},
+    {path: join("test/subdir"), directory: true, symlink: false},
+    {path: join("test/subdir/file"), directory: false, symlink: false},
+    {path: join("test/subdir2"), directory: true, symlink: false},
+    {path: join("test/subdir2/file"), directory: false, symlink: false},
+  ];
+
   const streamResults = [];
   for await (const result of rrdir.stream("test")) streamResults.push(result);
   for (const result of [await rrdir("test"), rrdir.sync("test"), streamResults]) {
-    expect(result).toEqual([
-      {path: join("test/file"), directory: false, symlink: false},
-      {path: join("test/subdir"), directory: true, symlink: false},
-      {path: join("test/subdir/file"), directory: false, symlink: false},
-      {path: join("test/subdir2"), directory: true, symlink: false},
-      {path: join("test/subdir2/file"), directory: false, symlink: false},
-    ]);
+    expect(result).toHaveLength(expected.length);
+    expect(result).toEqual(expect.arrayContaining(expected));
   }
 });
 
 test("exclude", async () => {
   const opts = {exclude: ["**/subdir"]};
+  const expected = [
+    {path: join("test/file"), directory: false, symlink: false},
+    {path: join("test/subdir2"), directory: true, symlink: false},
+    {path: join("test/subdir2/file"), directory: false, symlink: false},
+  ];
 
   const streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
 
   for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
-    expect(result).toEqual([
-      {path: join("test/file"), directory: false, symlink: false},
-      {path: join("test/subdir2"), directory: true, symlink: false},
-      {path: join("test/subdir2/file"), directory: false, symlink: false},
-    ]);
+    expect(result).toHaveLength(expected.length);
+    expect(result).toEqual(expect.arrayContaining(expected));
   }
 });
 
 test("exclude2", async () => {
   const opts = {exclude: ["**/file", "**/subdir2"]};
+  const expected = [
+    {path: join("test/subdir"), directory: true, symlink: false},
+  ];
 
   const streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
 
   for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
-    expect(result).toEqual([
-      {path: join("test/subdir"), directory: true, symlink: false},
-    ]);
+    expect(result).toHaveLength(expected.length);
+    expect(result).toEqual(expect.arrayContaining(expected));
   }
 });
 
 test("exclude3", async () => {
   const opts = {exclude: ["**/sub*"]};
+  const expected = [
+    {path: join("test/file"), directory: false, symlink: false},
+  ];
 
   const streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
 
   for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
-    expect(result).toEqual([
-      {path: join("test/file"), directory: false, symlink: false},
-    ]);
+    expect(result).toHaveLength(expected.length);
+    expect(result).toEqual(expect.arrayContaining(expected));
   }
 });
 
 test("exclude4", async () => {
   const opts = {exclude: ["**/subdir", "**/subdir2"]};
+  const expected = [
+    {path: join("test/file"), directory: false, symlink: false},
+  ];
 
   const streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
 
   for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
-    expect(result).toEqual([
-      {path: join("test/file"), directory: false, symlink: false},
-    ]);
+    expect(result).toHaveLength(expected.length);
+    expect(result).toEqual(expect.arrayContaining(expected));
   }
 });
 
@@ -122,30 +133,34 @@ test("exclude6", async () => {
 
 test("include", async () => {
   const opts = {include: ["**/f*"]};
+  const expected = [
+    {path: join("test/file"), directory: false, symlink: false},
+    {path: join("test/subdir/file"), directory: false, symlink: false},
+    {path: join("test/subdir2/file"), directory: false, symlink: false},
+  ];
 
   const streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
 
   for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
-    expect(result).toEqual([
-      {path: join("test/file"), directory: false, symlink: false},
-      {path: join("test/subdir/file"), directory: false, symlink: false},
-      {path: join("test/subdir2/file"), directory: false, symlink: false},
-    ]);
+    expect(result).toHaveLength(expected.length);
+    expect(result).toEqual(expect.arrayContaining(expected));
   }
 });
 
 test("exclude include", async () => {
   const opts = {exclude: ["**/subdir2"], include: ["**/file"]};
+  const expected = [
+    {path: join("test/file"), directory: false, symlink: false},
+    {path: join("test/subdir/file"), directory: false, symlink: false},
+  ];
 
   const streamResults = [];
   for await (const result of rrdir.stream("test", opts)) streamResults.push(result);
 
   for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
-    expect(result).toEqual([
-      {path: join("test/file"), directory: false, symlink: false},
-      {path: join("test/subdir/file"), directory: false, symlink: false},
-    ]);
+    expect(result).toHaveLength(expected.length);
+    expect(result).toEqual(expect.arrayContaining(expected));
   }
 });
 

@@ -53,9 +53,9 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
   }
   if (!entries.length) return results;
 
-  for (const entry of entries) {
+  await Promise.all(entries.map(async entry => {
     const path = `${dir}${sep}${entry.name}`;
-    if (excludeMatcher(path)) continue;
+    if (excludeMatcher(path)) return;
 
     let stats;
     if (opts.stats) {
@@ -69,7 +69,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
 
     if (includeMatcher(path)) results.push(build(entry, path, stats));
     if (entry.isDirectory()) results.push(...await rrdir(path, opts, {includeMatcher, excludeMatcher}));
-  }
+  }));
 
   return results;
 };
