@@ -40,6 +40,9 @@
   ],
   "jest": {
     "verbose": false,
-    "testTimeout": 10000
+    "testTimeout": 10000,
+    "collectCoverageFrom": [
+      "*.js"
+    ]
   }
 }
