@@ -29,7 +29,7 @@ function build(dirent, path, stats) {
 function makeMatchers({include, exclude, match}) {
   return {
     includeMatcher: picomatch(include, match),
-    excludeMatcher: picomatch(exclude),
+    excludeMatcher: picomatch(exclude, match),
   };
 }
 
