@@ -118,7 +118,6 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
         if (opts.strict) throw err;
         results.push({path, err});
       }
-      if (stats) ;
     }
 
     results.push(build(entry, path, stats));
