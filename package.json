@@ -5,6 +5,7 @@
   "author": "silverwind <me@silverwind.io>",
   "repository": "silverwind/rrdir",
   "license": "BSD-2-Clause",
+  "main": "index.js",
   "scripts": {
     "test": "make test"
   },
@@ -20,6 +21,7 @@
   "devDependencies": {
     "eslint": "6.8.0",
     "eslint-config-silverwind": "7.1.0",
+    "jest": "25.1.0",
     "updates": "9.3.3",
     "versions": "7.0.5"
   },
@@ -33,5 +35,9 @@
     "crawl",
     "crawler",
     "scandir"
-  ]
+  ],
+  "jest": {
+    "verbose": false,
+    "testTimeout": 10000
+  }
 }
