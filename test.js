@@ -152,8 +152,19 @@ test("include2", async () => {
   }
 });
 
-test("notfound", async () => {
+test("notfound strict", async () => {
   await expect(rrdir("notfound", {strict: true})).rejects.toThrow();
   expect(() => rrdir.sync("notfound", {strict: true})).toThrow();
   await expect(rrdir.stream("notfound", {strict: true}).next()).rejects.toThrow();
+});
+
+test("notfound", async () => {
+  const streamResults = [];
+  for await (const result of rrdir.stream("notfound")) streamResults.push(result);
+
+  for (const result of [await rrdir("notfound"), rrdir.sync("notfound"), streamResults]) {
+    expect(result.length).toEqual(1);
+    expect(result[0].path).toEqual("notfound");
+    expect(result[0].err).toBeTruthy();
+  }
 });
