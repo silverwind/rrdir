@@ -27,37 +27,25 @@ function isIncluded(path, entry, matcher) {
   return matcher(path);
 }
 
-// when a include pattern is specified, stop yielding directories
-function canInclude(entry, opts) {
-  if (!opts.include || !opts.include.length) return true;
-  return !entry.isDirectory();
-}
-
 function build(dirent, path, stats) {
   const entry = {path, directory: dirent.isDirectory(), symlink: dirent.isSymbolicLink()};
   if (stats) entry.stats = stats;
   return entry;
 }
 
-function makeMatchers(opts) {
-  let includeMatcher = null;
-  let excludeMatcher = null;
-
-  if (opts && opts.include && opts.include.length) {
-    includeMatcher = picomatch(opts.include, opts.match);
-  }
-
-  if (opts && opts.exclude && opts.exclude.length) {
-    excludeMatcher = picomatch(opts.exclude, opts.match);
-  }
-
-  return {includeMatcher, excludeMatcher};
+function makeMatchers({include, exclude, match}) {
+  return {
+    includeMatcher: (include && include.length) ? picomatch(include, match) : null,
+    excludeMatcher: (exclude && exclude.length) ? picomatch(exclude, match) : null,
+  };
 }
 
-const rrdir = module.exports = async (dir, opts) => {
-  const {includeMatcher, excludeMatcher} = makeMatchers(opts);
-  if (isExcluded(dir, excludeMatcher)) return [];
-  opts = Object.assign({}, defaults, opts);
+const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
+  if (!includeMatcher) {
+    opts = Object.assign({}, defaults, opts);
+    ({includeMatcher, excludeMatcher} = makeMatchers(opts));
+  }
+
   const results = [];
   let entries = [];
 
@@ -85,21 +73,21 @@ const rrdir = module.exports = async (dir, opts) => {
         if (opts.strict) throw err;
         results.push({path, err});
       }
-      if (stats && canInclude(entry, opts)) results.push(build(entry, path, stats));
-    } else {
-      if (canInclude(entry, opts)) results.push(build(entry, path));
     }
 
+    results.push(build(entry, path, stats));
     if (entry.isDirectory()) results.push(...await rrdir(path, opts));
   }
 
   return results;
 };
 
-module.exports.sync = (dir, opts) => {
-  const {includeMatcher, excludeMatcher} = makeMatchers(opts);
-  if (isExcluded(dir, excludeMatcher)) return [];
-  opts = Object.assign({}, defaults, opts);
+rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
+  if (!includeMatcher) {
+    opts = Object.assign({}, defaults, opts);
+    ({includeMatcher, excludeMatcher} = makeMatchers(opts));
+  }
+
   const results = [];
   let entries = [];
 
@@ -127,21 +115,22 @@ module.exports.sync = (dir, opts) => {
         if (opts.strict) throw err;
         results.push({path, err});
       }
-      if (stats && canInclude(entry, opts)) results.push(build(entry, path, stats));
-    } else {
-      if (canInclude(entry, opts)) results.push(build(entry, path));
+      if (stats) ;
     }
 
+    results.push(build(entry, path, stats));
     if (entry.isDirectory()) results.push(...rrdir.sync(path, opts));
   }
 
   return results;
 };
 
-module.exports.stream = async function* (dir, opts) {
-  const {includeMatcher, excludeMatcher} = makeMatchers(opts);
-  if (isExcluded(dir, excludeMatcher)) return;
-  opts = Object.assign({}, defaults, opts);
+rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) {
+  if (!includeMatcher) {
+    opts = Object.assign({}, defaults, opts);
+    ({includeMatcher, excludeMatcher} = makeMatchers(opts));
+  }
+
   let entries = [];
 
   try {
@@ -168,11 +157,9 @@ module.exports.stream = async function* (dir, opts) {
         if (opts.strict) throw err;
         yield {path, err};
       }
-      if (stats && canInclude(entry, opts)) yield build(entry, path, stats);
-    } else {
-      if (canInclude(entry, opts)) yield build(entry, path);
     }
 
+    yield build(entry, path, stats);
     if (entry.isDirectory()) yield* await rrdir.stream(path, opts);
   }
 };
