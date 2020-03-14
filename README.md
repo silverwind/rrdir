@@ -41,7 +41,6 @@ Recursively read a directory for entries contained within. `rrdir` and `rrdir.sy
 - `options.exclude` *Array*: Full path globs to exclude. Default: `[]`.
 - `options.include` *Array*: Full path globs to include. Default: `[]`.
 - `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
-- `options.encoding` *string*: The encoding to use on `entry.path`. Default: `'utf8'`.
 - `options.match` *Object*: [picomatch options](https://github.com/micromatch/picomatch#options). Default: `{dot: true}`.
 
 #### `entry`

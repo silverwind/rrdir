@@ -6,7 +6,6 @@ const {join} = require("path");
 const picomatch = require("picomatch");
 
 const defaults = {
-  encoding: "utf8",
   strict: false,
   stats: false,
   followSymlinks: true,
@@ -50,7 +49,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
   let entries = [];
 
   try {
-    entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: true});
+    entries = await readdir(dir, {withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -92,7 +91,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
   let entries = [];
 
   try {
-    entries = readdirSync(dir, {encoding: opts.encoding, withFileTypes: true});
+    entries = readdirSync(dir, {withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -134,7 +133,7 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
   let entries = [];
 
   try {
-    entries = await readdir(dir, {encoding: opts.encoding, withFileTypes: true});
+    entries = await readdir(dir, {withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
