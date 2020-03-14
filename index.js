@@ -79,7 +79,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
     }
 
     results.push(build(entry, path, stats));
-    if (entry.isDirectory()) results.push(...await rrdir(path, opts));
+    if (entry.isDirectory()) results.push(...await rrdir(path, opts, {includeMatcher, excludeMatcher}));
   }
 
   return results;
@@ -121,7 +121,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
     }
 
     results.push(build(entry, path, stats));
-    if (entry.isDirectory()) results.push(...rrdir.sync(path, opts));
+    if (entry.isDirectory()) results.push(...rrdir.sync(path, opts, {includeMatcher, excludeMatcher}));
   }
 
   return results;
@@ -162,6 +162,6 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
     }
 
     yield build(entry, path, stats);
-    if (entry.isDirectory()) yield* await rrdir.stream(path, opts);
+    if (entry.isDirectory()) yield* await rrdir.stream(path, opts, {includeMatcher, excludeMatcher});
   }
 };
