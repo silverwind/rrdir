@@ -9,8 +9,8 @@ const defaults = {
   strict: false,
   stats: false,
   followSymlinks: true,
-  exclude: [],
-  include: ["**"],
+  exclude: undefined,
+  include: undefined,
   match: {
     dot: true,
   },
@@ -28,8 +28,8 @@ function build(dirent, path, stats) {
 
 function makeMatchers({include, exclude, match}) {
   return {
-    includeMatcher: picomatch(include, match),
-    excludeMatcher: picomatch(exclude, match),
+    includeMatcher: include ? picomatch(include, match) : () => true,
+    excludeMatcher: exclude ? picomatch(exclude, match) : () => false,
   };
 }
 
@@ -54,7 +54,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
   if (!entries.length) return results;
 
   await Promise.all(entries.map(async entry => {
-    const path = `${dir}${sep}${entry.name}`;
+    const path = dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
     if (excludeMatcher(path)) return;
 
     let stats;
@@ -95,7 +95,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
   if (!entries.length) return results;
 
   for (const entry of entries) {
-    const path = `${dir}${sep}${entry.name}`;
+    const path = dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
     if (excludeMatcher(path)) continue;
 
     let stats;
@@ -135,7 +135,7 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
   if (!entries.length) return;
 
   for (const entry of entries) {
-    const path = `${dir}${sep}${entry.name}`;
+    const path = dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
     if (excludeMatcher && excludeMatcher(path)) continue;
 
     let stats;

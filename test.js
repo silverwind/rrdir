@@ -47,6 +47,24 @@ test("basic", async () => {
   }
 });
 
+test("basic cwd", async () => {
+  const expected = [
+    {path: join("test"), directory: true, symlink: false},
+    {path: join("test/file"), directory: false, symlink: false},
+    {path: join("test/subdir"), directory: true, symlink: false},
+    {path: join("test/subdir/file"), directory: false, symlink: false},
+    {path: join("test/subdir2"), directory: true, symlink: false},
+    {path: join("test/subdir2/file"), directory: false, symlink: false},
+  ];
+
+  const streamResults = [];
+  for await (const result of rrdir.stream(".")) streamResults.push(result);
+  for (const result of [await rrdir("."), rrdir.sync("."), streamResults]) {
+    expect(result).toHaveLength(expected.length);
+    expect(result).toEqual(expect.arrayContaining(expected));
+  }
+});
+
 test("exclude", async () => {
   const opts = {exclude: ["**/subdir"]};
   const expected = [
