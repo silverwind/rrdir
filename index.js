@@ -2,7 +2,7 @@
 
 const {readdir, stat, lstat} = require("fs").promises;
 const {readdirSync, statSync, lstatSync} = require("fs");
-const {join} = require("path");
+const {sep} = require("path");
 const picomatch = require("picomatch");
 
 const defaults = {
@@ -54,7 +54,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
   if (!entries.length) return results;
 
   for (const entry of entries) {
-    const path = join(dir, entry.name);
+    const path = `${dir}${sep}${entry.name}`;
     if (excludeMatcher(path)) continue;
 
     let stats;
@@ -95,7 +95,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
   if (!entries.length) return results;
 
   for (const entry of entries) {
-    const path = join(dir, entry.name);
+    const path = `${dir}${sep}${entry.name}`;
     if (excludeMatcher(path)) continue;
 
     let stats;
@@ -135,7 +135,7 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
   if (!entries.length) return;
 
   for (const entry of entries) {
-    const path = join(dir, entry.name);
+    const path = `${dir}${sep}${entry.name}`;
     if (excludeMatcher && excludeMatcher(path)) continue;
 
     let stats;
