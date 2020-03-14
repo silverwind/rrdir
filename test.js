@@ -129,15 +129,13 @@ test("include", async () => {
   for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
     expect(result).toEqual([
       {path: join("test/file"), directory: false, symlink: false},
-      {path: join("test/subdir"), directory: true, symlink: false},
       {path: join("test/subdir/file"), directory: false, symlink: false},
-      {path: join("test/subdir2"), directory: true, symlink: false},
       {path: join("test/subdir2/file"), directory: false, symlink: false},
     ]);
   }
 });
 
-test("include2", async () => {
+test("exclude include", async () => {
   const opts = {exclude: ["**/subdir2"], include: ["**/file"]};
 
   const streamResults = [];
@@ -146,7 +144,6 @@ test("include2", async () => {
   for (const result of [await rrdir("test", opts), rrdir.sync("test", opts), streamResults]) {
     expect(result).toEqual([
       {path: join("test/file"), directory: false, symlink: false},
-      {path: join("test/subdir"), directory: true, symlink: false},
       {path: join("test/subdir/file"), directory: false, symlink: false},
     ]);
   }

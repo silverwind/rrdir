@@ -10,7 +10,7 @@ const defaults = {
   stats: false,
   followSymlinks: true,
   exclude: [],
-  include: [],
+  include: ["**"],
   match: {
     dot: true,
   },
@@ -20,16 +20,6 @@ const readDirOpts = {
   withFileTypes: true,
 };
 
-function isExcluded(path, matcher) {
-  if (!matcher) return false;
-  return matcher(path);
-}
-
-function isIncluded(path, entry, matcher) {
-  if (!matcher || entry.isDirectory()) return true;
-  return matcher(path);
-}
-
 function build(dirent, path, stats) {
   const entry = {path, directory: dirent.isDirectory(), symlink: dirent.isSymbolicLink()};
   if (stats) entry.stats = stats;
@@ -38,8 +28,8 @@ function build(dirent, path, stats) {
 
 function makeMatchers({include, exclude, match}) {
   return {
-    includeMatcher: (include && include.length) ? picomatch(include, match) : null,
-    excludeMatcher: (exclude && exclude.length) ? picomatch(exclude, match) : null,
+    includeMatcher: picomatch(include, match),
+    excludeMatcher: picomatch(exclude),
   };
 }
 
@@ -65,8 +55,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
-    if (isExcluded(path, excludeMatcher)) continue;
-    if (!isIncluded(path, entry, includeMatcher)) continue;
+    if (excludeMatcher(path)) continue;
 
     let stats;
     if (opts.stats) {
@@ -78,7 +67,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
       }
     }
 
-    results.push(build(entry, path, stats));
+    if (includeMatcher(path)) results.push(build(entry, path, stats));
     if (entry.isDirectory()) results.push(...await rrdir(path, opts, {includeMatcher, excludeMatcher}));
   }
 
@@ -107,8 +96,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
-    if (isExcluded(path, excludeMatcher)) continue;
-    if (!isIncluded(path, entry, includeMatcher)) continue;
+    if (excludeMatcher(path)) continue;
 
     let stats;
     if (opts.stats) {
@@ -120,7 +108,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
       }
     }
 
-    results.push(build(entry, path, stats));
+    if (includeMatcher(path)) results.push(build(entry, path, stats));
     if (entry.isDirectory()) results.push(...rrdir.sync(path, opts, {includeMatcher, excludeMatcher}));
   }
 
@@ -148,8 +136,7 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
 
   for (const entry of entries) {
     const path = join(dir, entry.name);
-    if (isExcluded(path, excludeMatcher)) continue;
-    if (!isIncluded(path, entry, includeMatcher)) continue;
+    if (excludeMatcher && excludeMatcher(path)) continue;
 
     let stats;
     if (opts.stats) {
@@ -161,7 +148,7 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
       }
     }
 
-    yield build(entry, path, stats);
+    if (includeMatcher(path)) yield build(entry, path, stats);
     if (entry.isDirectory()) yield* await rrdir.stream(path, opts, {includeMatcher, excludeMatcher});
   }
 };
