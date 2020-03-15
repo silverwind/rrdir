@@ -57,7 +57,24 @@ test("basic", makeTest("test", undefined, [
   {path: join("test/subdir2/file"), directory: false, symlink: false},
 ]));
 
+test("basic slash", makeTest("test/", undefined, [
+  {path: join("test/file"), directory: false, symlink: false},
+  {path: join("test/subdir"), directory: true, symlink: false},
+  {path: join("test/subdir/file"), directory: false, symlink: false},
+  {path: join("test/subdir2"), directory: true, symlink: false},
+  {path: join("test/subdir2/file"), directory: false, symlink: false},
+]));
+
 test("cwd", makeTest(".", undefined, [
+  {path: join("test"), directory: true, symlink: false},
+  {path: join("test/file"), directory: false, symlink: false},
+  {path: join("test/subdir"), directory: true, symlink: false},
+  {path: join("test/subdir/file"), directory: false, symlink: false},
+  {path: join("test/subdir2"), directory: true, symlink: false},
+  {path: join("test/subdir2/file"), directory: false, symlink: false},
+]));
+
+test("cwdslash", makeTest("./", undefined, [
   {path: join("test"), directory: true, symlink: false},
   {path: join("test/file"), directory: false, symlink: false},
   {path: join("test/subdir"), directory: true, symlink: false},

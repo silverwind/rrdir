@@ -37,6 +37,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
+    if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
   }
 
   const results = [];
@@ -78,6 +79,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
+    if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
   }
 
   const results = [];
@@ -119,6 +121,7 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
+    if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
   }
 
   let entries = [];
