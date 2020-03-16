@@ -7,7 +7,14 @@ const {chdir} = require("process");
 const {join} = require("path");
 const {test, expect, beforeAll, afterAll} = global;
 const {writeFileSync, mkdirSync, symlinkSync} = require("fs");
+const {versions} = require("process");
+const {platform} = require("os");
+
 const testDir = tempy.directory();
+
+// node v10 on windows apparently can not symlink directories
+const nodeVersion = parseInt(versions.node);
+const skipSymlink = nodeVersion < 12 && platform() === "win32";
 
 beforeAll(() => {
   chdir(testDir);
@@ -71,16 +78,18 @@ test("basic slash", makeTest("test/", undefined, [
   {path: join("test/dirsymlink"), directory: false, symlink: true},
 ]));
 
-test("followSymlinks", makeTest("test", {followSymlinks: true}, [
-  {path: join("test/file"), directory: false, symlink: false},
-  {path: join("test/dir"), directory: true, symlink: false},
-  {path: join("test/dir/file"), directory: false, symlink: false},
-  {path: join("test/dir2"), directory: true, symlink: false},
-  {path: join("test/dir2/file"), directory: false, symlink: false},
-  {path: join("test/filesymlink"), directory: false, symlink: false},
-  {path: join("test/dirsymlink"), directory: true, symlink: false},
-  {path: join("test/dirsymlink/file"), directory: false, symlink: false},
-]));
+if (!skipSymlink) {
+  test("followSymlinks", makeTest("test", {followSymlinks: true}, [
+    {path: join("test/file"), directory: false, symlink: false},
+    {path: join("test/dir"), directory: true, symlink: false},
+    {path: join("test/dir/file"), directory: false, symlink: false},
+    {path: join("test/dir2"), directory: true, symlink: false},
+    {path: join("test/dir2/file"), directory: false, symlink: false},
+    {path: join("test/filesymlink"), directory: false, symlink: false},
+    {path: join("test/dirsymlink"), directory: true, symlink: false},
+    {path: join("test/dirsymlink/file"), directory: false, symlink: false},
+  ]));
+}
 
 test("stats", makeTest("test", {stats: true}, result => {
   for (const entry of result) expect(entry.stats).toBeTruthy();
