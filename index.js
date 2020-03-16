@@ -25,7 +25,6 @@ function makePath(entry, dir) {
 }
 
 function build(dirent, path, stats, opts) {
-  // console.log(path, stats.isSymbolicLink(), dirent.isSymbolicLink());
   const entry = {
     path,
     directory: stats ? stats.isDirectory() : dirent.isDirectory(),
