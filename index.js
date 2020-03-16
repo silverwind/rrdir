@@ -61,7 +61,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
     let stats;
     if (opts.stats) {
       try {
-        stats = await (opts.followSymlinks ? stat(path) : lstat(path));
+        stats = await (opts.followSymlinks ? stat : lstat)(path);
       } catch (err) {
         if (opts.strict) throw err;
         results.push({path, err});
@@ -103,7 +103,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
     let stats;
     if (opts.stats) {
       try {
-        stats = opts.followSymlinks ? statSync(path) : lstatSync(path);
+        stats = (opts.followSymlinks ? statSync : lstatSync)(path);
       } catch (err) {
         if (opts.strict) throw err;
         results.push({path, err});
@@ -144,7 +144,7 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
     let stats;
     if (opts.stats) {
       try {
-        stats = await (opts.followSymlinks ? stat(path) : lstat(path));
+        stats = await (opts.followSymlinks ? stat : lstat)(path);
       } catch (err) {
         if (opts.strict) throw err;
         yield {path, err};
