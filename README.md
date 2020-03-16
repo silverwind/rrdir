@@ -37,9 +37,9 @@ Recursively read a directory for entries contained within. `rrdir` and `rrdir.sy
 #### `options`
 
 - `options.stats` *boolean*: Whether to include `entry.stats`. Will reduce performance. Default: `false`.
-- `options.followSymlinks` *boolean*: Whether to follow symlinks when `options.stats` is enabled. Default: `true`.
-- `options.exclude` *Array*: Path globs to exclude. Default: `undefined`.
-- `options.include` *Array*: Path globs to include. Default: `undefined`.
+- `options.followSymlinks` *boolean*: Whether to follow symlinks when `options.stats` is enabled. Default: `false`.
+- `options.exclude` *Array*: Path globs to exclude, e.g. `["**/*.js"]`. Default: `undefined`.
+- `options.include` *Array*: Path globs to include, e.g. `["**/*.map"]`. Default: `undefined`.
 - `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
 - `options.match` *Object*: [picomatch options](https://github.com/micromatch/picomatch#options). Default: `{dot: true}`.
 
