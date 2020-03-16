@@ -20,6 +20,10 @@ const readDirOpts = {
   withFileTypes: true,
 };
 
+function makePath(entry, dir) {
+  return dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
+}
+
 function build(dirent, path, stats) {
   const entry = {path, directory: dirent.isDirectory(), symlink: dirent.isSymbolicLink()};
   if (stats) entry.stats = stats;
@@ -55,7 +59,7 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
   if (!entries.length) return results;
 
   await Promise.all(entries.map(async entry => {
-    const path = dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
+    const path = makePath(entry, dir);
     if (excludeMatcher(path)) return;
 
     let stats;
@@ -97,7 +101,7 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
   if (!entries.length) return results;
 
   for (const entry of entries) {
-    const path = dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
+    const path = makePath(entry, dir);
     if (excludeMatcher(path)) continue;
 
     let stats;
@@ -138,7 +142,7 @@ rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {include
   if (!entries.length) return;
 
   for (const entry of entries) {
-    const path = dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
+    const path = makePath(entry, dir);
     if (excludeMatcher && excludeMatcher(path)) continue;
 
     let stats;
