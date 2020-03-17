@@ -36,19 +36,19 @@ Recursively read a directory for entries contained within. `rrdir` and `rrdir.sy
 
 #### `options` *Object*
 
-- `options.stats` *boolean*: Whether to include `entry.stats`. Will reduce performance. Default: `false`.
-- `options.followSymlinks` *boolean*: Whether to follow symlinks for both recursion and `stat` calls. Default: `false`.
-- `options.exclude` *Array*: Path globs to exclude, e.g. `["**/*.js"]`. Default: `undefined`.
-- `options.include` *Array*: Path globs to include, e.g. `["**/*.map"]`. Default: `undefined`.
-- `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
-- `options.match` *Object*: [picomatch options](https://github.com/micromatch/picomatch#options). Default: `{dot: true}`.
+- `stats` *boolean*: Whether to include `entry.stats`. Will reduce performance. Default: `false`.
+- `followSymlinks` *boolean*: Whether to follow symlinks for both recursion and `stat` calls. Default: `false`.
+- `exclude` *Array*: Path globs to exclude, e.g. `["**/*.js"]`. Default: `undefined`.
+- `include` *Array*: Path globs to include, e.g. `["**/*.map"]`. Default: `undefined`.
+- `strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
+- `match` *Object*: [picomatch options](https://github.com/micromatch/picomatch#options). Default: `{dot: true}`.
 
 #### `entry` *Object*
 
-- `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative. Always present.
-- `entry.directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
-- `entry.symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. `undefined` on error.
-- `entry.stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error.
-- `entry.err` *Error*: Any error encountered while reading this entry. `undefined` on success.
+- `path` *string*: The path to the entry, will be relative if `dir` is given relative. Always present.
+- `directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
+- `symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. `undefined` on error.
+- `stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error.
+- `err` *Error*: Any error encountered while reading this entry. `undefined` on success.
 
 © [silverwind](https://github.com/silverwind), distributed under BSD licence
