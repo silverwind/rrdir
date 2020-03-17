@@ -34,7 +34,7 @@ const entries = rrdir.sync("dir");
 
 Recursively read a directory for entries contained within. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields `entry`. By default, errors while reading files will be ignored and put in `entry.err`.
 
-#### `options`
+#### `options` *Object*
 
 - `options.stats` *boolean*: Whether to include `entry.stats`. Will reduce performance. Default: `false`.
 - `options.followSymlinks` *boolean*: Whether to follow symlinks for both recursion and `stat` calls. Default: `false`.
@@ -43,7 +43,7 @@ Recursively read a directory for entries contained within. `rrdir` and `rrdir.sy
 - `options.strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
 - `options.match` *Object*: [picomatch options](https://github.com/micromatch/picomatch#options). Default: `{dot: true}`.
 
-#### `entry`
+#### `entry` *Object*
 
 - `entry.path` *string*: The path to the entry, will be relative if `dir` is given relative. Always present.
 - `entry.directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
