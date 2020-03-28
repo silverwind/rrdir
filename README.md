@@ -15,14 +15,14 @@ npm i rrdir
 const rrdir = require("rrdir");
 
 for await (const entry of rrdir("dir")) {
-  // => {path: 'dir/file', directory: false, symlink: true}
+  // => {path: 'dir/file', directory: false, symlink: false}
 }
 
 const entries = await rrdir.async("dir");
-// => [{path: 'dir/file', directory: false, symlink: true}]
+// => [{path: 'dir/file', directory: false, symlink: false}]
 
 const entries = rrdir.sync("dir");
-// => [{path: 'dir/file', directory: false, symlink: true}]
+// => [{path: 'dir/file', directory: false, symlink: false}]
 
 ```
 
