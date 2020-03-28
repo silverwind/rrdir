@@ -32,7 +32,7 @@ const entries = rrdir.sync("dir");
 ### `rrdir.async(dir, [options])`
 ### `rrdir.sync(dir, [options])`
 
-Recursively read a directory for entries contained within. `rrdir` is an async iterator which yields `entry`. `rrdir.async` and `rrdir.sync` return an Array of `entry`.
+`rrdir` is an async iterator which yields `entry`. `rrdir.async` and `rrdir.sync` return an Array of `entry`.
 
 #### `options` *Object*
 
