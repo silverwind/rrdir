@@ -41,7 +41,54 @@ function makeMatchers({include, exclude, match}) {
   };
 }
 
-const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
+const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) {
+  if (includeMatcher === undefined) {
+    opts = Object.assign({}, defaults, opts);
+    ({includeMatcher, excludeMatcher} = makeMatchers(opts));
+    if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+  }
+
+  let dirents = [];
+
+  try {
+    dirents = await readdir(dir, readDirOpts);
+  } catch (err) {
+    if (opts.strict) {
+      throw err;
+    } else {
+      yield {path: dir, err};
+    }
+  }
+  if (!dirents.length) return;
+
+  for (const dirent of dirents) {
+    const path = makePath(dirent, dir);
+    if (excludeMatcher && excludeMatcher(path)) continue;
+
+    let stats;
+    if (opts.stats) {
+      try {
+        stats = await (opts.followSymlinks ? stat : lstat)(path);
+      } catch (err) {
+        if (opts.strict) throw err;
+        yield {path, err};
+      }
+    }
+
+    let recurse = false;
+    if (opts.followSymlinks && dirent.isSymbolicLink()) {
+      if (!stats) try { stats = await stat(path) } catch {}
+      if (stats && stats.isDirectory()) recurse = true;
+    } else if (dirent.isDirectory()) {
+      recurse = true;
+    }
+
+    if (includeMatcher(path)) yield build(dirent, path, stats, opts);
+    if (recurse) yield* await rrdir(path, opts, {includeMatcher, excludeMatcher});
+  }
+};
+
+module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
@@ -85,13 +132,13 @@ const rrdir = module.exports = async (dir, opts = {}, {includeMatcher, excludeMa
     }
 
     if (includeMatcher(path)) results.push(build(dirent, path, stats, opts));
-    if (recurse) results.push(...await rrdir(path, opts, {includeMatcher, excludeMatcher}));
+    if (recurse) results.push(...await module.exports.async(path, opts, {includeMatcher, excludeMatcher}));
   }));
 
   return results;
 };
 
-rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
+module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
@@ -135,55 +182,8 @@ rrdir.sync = module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatc
     }
 
     if (includeMatcher(path)) results.push(build(dirent, path, stats, opts));
-    if (recurse) results.push(...rrdir.sync(path, opts, {includeMatcher, excludeMatcher}));
+    if (recurse) results.push(...module.exports.sync(path, opts, {includeMatcher, excludeMatcher}));
   }
 
   return results;
-};
-
-rrdir.stream = module.exports.stream = async function* (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) {
-  if (includeMatcher === undefined) {
-    opts = Object.assign({}, defaults, opts);
-    ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
-  }
-
-  let dirents = [];
-
-  try {
-    dirents = await readdir(dir, readDirOpts);
-  } catch (err) {
-    if (opts.strict) {
-      throw err;
-    } else {
-      yield {path: dir, err};
-    }
-  }
-  if (!dirents.length) return;
-
-  for (const dirent of dirents) {
-    const path = makePath(dirent, dir);
-    if (excludeMatcher && excludeMatcher(path)) continue;
-
-    let stats;
-    if (opts.stats) {
-      try {
-        stats = await (opts.followSymlinks ? stat : lstat)(path);
-      } catch (err) {
-        if (opts.strict) throw err;
-        yield {path, err};
-      }
-    }
-
-    let recurse = false;
-    if (opts.followSymlinks && dirent.isSymbolicLink()) {
-      if (!stats) try { stats = await stat(path) } catch {}
-      if (stats && stats.isDirectory()) recurse = true;
-    } else if (dirent.isDirectory()) {
-      recurse = true;
-    }
-
-    if (includeMatcher(path)) yield build(dirent, path, stats, opts);
-    if (recurse) yield* await rrdir.stream(path, opts, {includeMatcher, excludeMatcher});
-  }
 };

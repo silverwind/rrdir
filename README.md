@@ -3,7 +3,7 @@
 
 > Recursive directory reader with a delightful API
 
-`rrdir` recursively reads a directory and returns entries within via an async iterator or array. It has minimal dependencies and can typically iterate millions of files in a matter of seconds. Memory usage is `O(1)` for the iterator and `O(n)` for the array variants.
+`rrdir` recursively reads a directory and returns entries within via an async iterator or async/sync as Array. It has minimal dependencies and can typically iterate millions of files in a matter of seconds. Memory usage is `O(1)` for the async iterator and `O(n)` for the Array variants.
 
 ## Installation
 ```console
@@ -14,11 +14,11 @@ npm i rrdir
 ```js
 const rrdir = require("rrdir");
 
-for await (const entry of rrdir.stream("dir")) {
+for await (const entry of rrdir("dir")) {
   // => {path: 'dir/file', directory: false, symlink: true}
 }
 
-const entries = await rrdir("dir");
+const entries = await rrdir.async("dir");
 // => [{path: 'dir/file', directory: false, symlink: true}]
 
 const entries = rrdir.sync("dir");
@@ -29,10 +29,10 @@ const entries = rrdir.sync("dir");
 ## API
 
 ### `rrdir(dir, [options])`
-### `rrdir.stream(dir, [options])`
+### `rrdir.async(dir, [options])`
 ### `rrdir.sync(dir, [options])`
 
-Recursively read a directory for entries contained within. `rrdir` and `rrdir.sync` return an array of `entry`, `rrdir.stream` is a async iterator which yields `entry`. By default, errors while reading files will be ignored and put in `entry.err`.
+Recursively read a directory for entries contained within. `rrdir` is an async iterator which yields `entry`. `rrdir.async` and `rrdir.sync` return an Array of `entry`.
 
 #### `options` *Object*
 

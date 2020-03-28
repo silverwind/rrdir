@@ -41,17 +41,17 @@ function sort(entries) {
 
 function makeTest(dir, opts, expected) {
   return async () => {
-    const streamResults = [];
-    for await (const result of rrdir.stream(dir, opts)) streamResults.push(result);
-    const asyncResults = await rrdir(dir, opts);
+    const iteratorResults = [];
+    for await (const result of rrdir(dir, opts)) iteratorResults.push(result);
+    const asyncResults = await rrdir.async(dir, opts);
     const syncResults = rrdir.sync(dir, opts);
 
     if (typeof expected === "function") {
-      expected(streamResults);
+      expected(iteratorResults);
       expected(asyncResults);
       expected(syncResults);
     } else {
-      expect(sort(streamResults)).toEqual(sort(expected));
+      expect(sort(iteratorResults)).toEqual(sort(expected));
       expect(sort(asyncResults)).toEqual(sort(expected));
       expect(sort(syncResults)).toEqual(sort(expected));
     }
@@ -195,7 +195,7 @@ test("error", makeTest("notfound", undefined, results => {
 }));
 
 test("error strict", async () => {
-  await expect(rrdir("notfound", {strict: true})).rejects.toThrow();
+  await expect(rrdir("notfound", {strict: true}).next()).rejects.toThrow();
+  await expect(rrdir.async("notfound", {strict: true})).rejects.toThrow();
   expect(() => rrdir.sync("notfound", {strict: true})).toThrow();
-  await expect(rrdir.stream("notfound", {strict: true}).next()).rejects.toThrow();
 });
