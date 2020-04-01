@@ -35,8 +35,8 @@ function build(dirent, path, stats, opts) {
 
 function makeMatchers({include, exclude, match}) {
   return {
-    includeMatcher: include ? picomatch(include, match) : () => true,
-    excludeMatcher: exclude ? picomatch(exclude, match) : () => false,
+    includeMatcher: include ? picomatch(include, match) : null,
+    excludeMatcher: exclude ? picomatch(exclude, match) : null,
   };
 }
 
@@ -82,7 +82,7 @@ const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher,
       recurse = true;
     }
 
-    if (includeMatcher(path)) yield build(dirent, path, stats, opts);
+    if (!includeMatcher || includeMatcher(path)) yield build(dirent, path, stats, opts);
     if (recurse) yield* await rrdir(path, opts, {includeMatcher, excludeMatcher});
   }
 };
@@ -110,7 +110,7 @@ module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher} =
 
   await Promise.all(dirents.map(async dirent => {
     const path = makePath(dirent, dir);
-    if (excludeMatcher(path)) return;
+    if (excludeMatcher && excludeMatcher(path)) return;
 
     let stats;
     if (opts.stats) {
@@ -130,7 +130,7 @@ module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher} =
       recurse = true;
     }
 
-    if (includeMatcher(path)) results.push(build(dirent, path, stats, opts));
+    if (!includeMatcher || includeMatcher(path)) results.push(build(dirent, path, stats, opts));
     if (recurse) results.push(...await module.exports.async(path, opts, {includeMatcher, excludeMatcher}));
   }));
 
@@ -160,7 +160,7 @@ module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) =>
 
   for (const dirent of dirents) {
     const path = makePath(dirent, dir);
-    if (excludeMatcher(path)) continue;
+    if (excludeMatcher && excludeMatcher(path)) continue;
 
     let stats;
     if (opts.stats) {
@@ -180,7 +180,7 @@ module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) =>
       recurse = true;
     }
 
-    if (includeMatcher(path)) results.push(build(dirent, path, stats, opts));
+    if (!includeMatcher || includeMatcher(path)) results.push(build(dirent, path, stats, opts));
     if (recurse) results.push(...module.exports.sync(path, opts, {includeMatcher, excludeMatcher}));
   }
 
