@@ -25,13 +25,12 @@ function makePath(entry, dir) {
 }
 
 function build(dirent, path, stats, opts) {
-  const entry = {
+  return {
     path,
-    directory: stats ? stats.isDirectory() : dirent.isDirectory(),
-    symlink: stats ? stats.isSymbolicLink() : dirent.isSymbolicLink(),
+    directory: (stats || dirent).isDirectory(),
+    symlink: (stats || dirent).isSymbolicLink(),
+    ...(opts.stats ? {stats} : {}),
   };
-  if (opts.stats) entry.stats = stats;
-  return entry;
 }
 
 function makeMatchers({include, exclude, match}) {
