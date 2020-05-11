@@ -15,9 +15,8 @@ const testDir = tempy.directory();
 const weirdBuffer = Buffer.from([0x78, 0xf6, 0x6c, 0x78]); // this buffer does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
 const weirdString = String(weirdBuffer);
 
-// node on windows apparently sometimes can not follow symlink directories
-const hasRecursiveRmdir = semver.gte(process.version, "12.10.0");
-const skipSymlink = platform() === "win32";
+const hasRecursiveRmdir = semver.gte(process.versions.node, "12.10.0");
+const skipSymlink = platform() === "win32"; // node on windows apparently sometimes can not follow symlink directories
 const skipWeird = (platform() === "darwin" || !hasRecursiveRmdir);
 
 beforeAll(async () => {
