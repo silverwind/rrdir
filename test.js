@@ -10,7 +10,7 @@ const {writeFile, mkdir, symlink, readFile} = require("fs").promises;
 const {platform} = require("os");
 
 const testDir = tempy.directory();
-const weirdName = String(Buffer.from([0x78, 0xef, 0xbf, 0xbd, 0x78]));
+const weirdName = String(Buffer.from([0x78, 0xf6, 0x6c, 0x78]));
 
 // node on windows apparently sometimes can not follow symlink directories
 const skipSymlink = platform() === "win32";
