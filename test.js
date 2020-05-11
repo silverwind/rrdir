@@ -107,7 +107,7 @@ test("stats", makeTest("test", {stats: true}, result => {
 }));
 
 test("stats buffer", makeTest(new Buffer("test"), {stats: true}, result => {
-  for (const {path, stats} of result) {
+  for (const {stats} of result) {
     expect(stats).toBeTruthy();
   }
 }));
