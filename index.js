@@ -5,6 +5,8 @@ const {readdirSync, statSync, lstatSync} = require("fs");
 const {sep} = require("path");
 const picomatch = require("picomatch");
 
+const sepBuffer = Buffer.from(sep);
+
 const defaults = {
   strict: false,
   stats: false,
@@ -16,12 +18,12 @@ const defaults = {
   },
 };
 
-const readDirOpts = {
-  withFileTypes: true,
-};
-
-function makePath(entry, dir) {
-  return dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
+function makePath(entry, dir, encoding) {
+  if (encoding === "buffer") {
+    return dir === "." ? entry.name : Buffer.from([...dir, ...sepBuffer, ...entry.name]);
+  } else {
+    return dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
+  }
 }
 
 function build(dirent, path, stats, opts) {
@@ -40,17 +42,18 @@ function makeMatchers({include, exclude, match}) {
   };
 }
 
-const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) {
+const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+    encoding = Buffer.isBuffer(dir) ? "buffer" : undefined;
   }
 
   let dirents = [];
 
   try {
-    dirents = await readdir(dir, readDirOpts);
+    dirents = await readdir(dir, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -61,8 +64,8 @@ const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher,
   if (!dirents.length) return;
 
   for (const dirent of dirents) {
-    const path = makePath(dirent, dir);
-    if (excludeMatcher && excludeMatcher(path)) continue;
+    const path = makePath(dirent, dir, encoding);
+    if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) continue;
 
     let stats;
     if (opts.stats) {
@@ -82,23 +85,24 @@ const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher,
       recurse = true;
     }
 
-    if (!includeMatcher || includeMatcher(path)) yield build(dirent, path, stats, opts);
-    if (recurse) yield* await rrdir(path, opts, {includeMatcher, excludeMatcher});
+    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) yield build(dirent, path, stats, opts);
+    if (recurse) yield* await rrdir(path, opts, {includeMatcher, excludeMatcher, encoding});
   }
 };
 
-module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
+module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) => {
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+    encoding = Buffer.isBuffer(dir) ? "buffer" : undefined;
   }
 
   const results = [];
   let dirents = [];
 
   try {
-    dirents = await readdir(dir, readDirOpts);
+    dirents = await readdir(dir, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -109,8 +113,8 @@ module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher} =
   if (!dirents.length) return results;
 
   await Promise.all(dirents.map(async dirent => {
-    const path = makePath(dirent, dir);
-    if (excludeMatcher && excludeMatcher(path)) return;
+    const path = makePath(dirent, dir, encoding);
+    if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) return;
 
     let stats;
     if (opts.stats) {
@@ -130,25 +134,26 @@ module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher} =
       recurse = true;
     }
 
-    if (!includeMatcher || includeMatcher(path)) results.push(build(dirent, path, stats, opts));
-    if (recurse) results.push(...await module.exports.async(path, opts, {includeMatcher, excludeMatcher}));
+    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) results.push(build(dirent, path, stats, opts));
+    if (recurse) results.push(...await module.exports.async(path, opts, {includeMatcher, excludeMatcher, encoding}));
   }));
 
   return results;
 };
 
-module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) => {
+module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) => {
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+    encoding = Buffer.isBuffer(dir) ? "buffer" : undefined;
   }
 
   const results = [];
   let dirents = [];
 
   try {
-    dirents = readdirSync(dir, readDirOpts);
+    dirents = readdirSync(dir, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) {
       throw err;
@@ -159,8 +164,8 @@ module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) =>
   if (!dirents.length) return results;
 
   for (const dirent of dirents) {
-    const path = makePath(dirent, dir);
-    if (excludeMatcher && excludeMatcher(path)) continue;
+    const path = makePath(dirent, dir, encoding);
+    if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) continue;
 
     let stats;
     if (opts.stats) {
@@ -180,8 +185,8 @@ module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) =>
       recurse = true;
     }
 
-    if (!includeMatcher || includeMatcher(path)) results.push(build(dirent, path, stats, opts));
-    if (recurse) results.push(...module.exports.sync(path, opts, {includeMatcher, excludeMatcher}));
+    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) results.push(build(dirent, path, stats, opts));
+    if (recurse) results.push(...module.exports.sync(path, opts, {includeMatcher, excludeMatcher, encoding}));
   }
 
   return results;

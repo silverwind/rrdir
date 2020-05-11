@@ -34,6 +34,10 @@ const entries = rrdir.sync("dir");
 
 `rrdir` is an async iterator which yields `entry`. `rrdir.async` and `rrdir.sync` return an Array of `entry`.
 
+#### `dir` *String* | *Buffer*
+
+The directory to read. If you pass a `Buffer` here, `entry.path` will be a Buffer as well.
+
 #### `options` *Object*
 
 - `stats` *boolean*: Whether to include `entry.stats`. Will reduce performance. Default: `false`.

@@ -4,16 +4,19 @@ const rrdir = require(".");
 const tempy = require("tempy");
 const del = require("del");
 const {chdir} = require("process");
-const {join} = require("path");
+const {join, sep} = require("path");
 const {test, expect, beforeAll, afterAll} = global;
-const {writeFile, mkdir, symlink, readFile} = require("fs").promises;
+const {writeFile, mkdir, symlink} = require("fs").promises;
 const {platform} = require("os");
 
+const sepBuffer = Buffer.from(sep);
 const testDir = tempy.directory();
-const weirdName = String(Buffer.from([0x78, 0xf6, 0x6c, 0x78]));
+const weirdBuffer = Buffer.from([0x78, 0xf6, 0x6c, 0x78]); // this buffer does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
+const weirdString = String(weirdBuffer);
 
 // node on windows apparently sometimes can not follow symlink directories
 const skipSymlink = platform() === "win32";
+const skipWeird = platform() === "darwin";
 
 beforeAll(async () => {
   chdir(testDir);
@@ -23,7 +26,7 @@ beforeAll(async () => {
   await writeFile(join("test/file"), "test");
   await writeFile(join("test/dir/file"), "test");
   await writeFile(join("test/dir2/file"), "test");
-  await writeFile(join("test", weirdName), "test");
+  if (!skipWeird) await writeFile(Buffer.from([...Buffer.from("test"), ...sepBuffer, ...weirdBuffer]), "test");
   await symlink(join("file"), join(("test/filesymlink")));
   await symlink(join("dir"), join(("test/dirsymlink")));
 });
@@ -32,10 +35,10 @@ afterAll(() => {
   del.sync(testDir, {force: true});
 });
 
-function sort(entries) {
+function sort(entries = []) {
   return entries.sort((a, b) => {
-    if ("path" in a && "path" in b) return a.path.localeCompare(b.path);
-    return 0;
+    if (!("path" in a) || !("path" in b)) return 0;
+    return String(a.path).localeCompare(String(b.path));
   });
 }
 
@@ -51,6 +54,7 @@ function makeTest(dir, opts, expected) {
       expected(asyncResults);
       expected(syncResults);
     } else {
+      expected = expected.filter(v => !!v);
       expect(sort(iteratorResults)).toEqual(sort(expected));
       expect(sort(asyncResults)).toEqual(sort(expected));
       expect(sort(syncResults)).toEqual(sort(expected));
@@ -60,7 +64,7 @@ function makeTest(dir, opts, expected) {
 
 test("basic", makeTest("test", undefined, [
   {path: join("test/file"), directory: false, symlink: false},
-  {path: join("test", weirdName), directory: false, symlink: false},
+  !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
   {path: join("test/dir2"), directory: true, symlink: false},
@@ -71,7 +75,7 @@ test("basic", makeTest("test", undefined, [
 
 test("basic slash", makeTest("test/", undefined, [
   {path: join("test/file"), directory: false, symlink: false},
-  {path: join("test", weirdName), directory: false, symlink: false},
+  !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
   {path: join("test/dir2"), directory: true, symlink: false},
@@ -83,7 +87,7 @@ test("basic slash", makeTest("test/", undefined, [
 if (!skipSymlink) {
   test("followSymlinks", makeTest("test", {followSymlinks: true}, [
     {path: join("test/file"), directory: false, symlink: false},
-    {path: join("test", weirdName), directory: false, symlink: false},
+    !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
     {path: join("test/dir"), directory: true, symlink: false},
     {path: join("test/dir/file"), directory: false, symlink: false},
     {path: join("test/dir2"), directory: true, symlink: false},
@@ -104,7 +108,7 @@ test("nostats", makeTest("test", {stats: false}, result => {
 
 test("cwd", makeTest(".", undefined, [
   {path: join("test"), directory: true, symlink: false},
-  {path: join("test", weirdName), directory: false, symlink: false},
+  !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
   {path: join("test/file"), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
@@ -116,7 +120,7 @@ test("cwd", makeTest(".", undefined, [
 
 test("cwdslash", makeTest("./", undefined, [
   {path: join("test"), directory: true, symlink: false},
-  {path: join("test", weirdName), directory: false, symlink: false},
+  !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
   {path: join("test/file"), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
@@ -128,7 +132,7 @@ test("cwdslash", makeTest("./", undefined, [
 
 test("exclude", makeTest("test", {exclude: ["**/dir"]}, [
   {path: join("test/file"), directory: false, symlink: false},
-  {path: join("test", weirdName), directory: false, symlink: false},
+  !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
   {path: join("test/dir2"), directory: true, symlink: false},
   {path: join("test/dir2/file"), directory: false, symlink: false},
   {path: join("test/filesymlink"), directory: false, symlink: true},
@@ -137,7 +141,7 @@ test("exclude", makeTest("test", {exclude: ["**/dir"]}, [
 
 test("exclude 2", makeTest("test", {exclude: ["**/dir2"]}, [
   {path: join("test/file"), directory: false, symlink: false},
-  {path: join("test", weirdName), directory: false, symlink: false},
+  !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
   {path: join("test/filesymlink"), directory: false, symlink: true},
@@ -146,13 +150,13 @@ test("exclude 2", makeTest("test", {exclude: ["**/dir2"]}, [
 
 test("exclude 3", makeTest("test", {exclude: ["**/dir*"]}, [
   {path: join("test/file"), directory: false, symlink: false},
-  {path: join("test", weirdName), directory: false, symlink: false},
+  !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
   {path: join("test/filesymlink"), directory: false, symlink: true},
 ]));
 
 test("exclude 4", makeTest("test", {exclude: ["**/dir", "**/dir2"]}, [
   {path: join("test/file"), directory: false, symlink: false},
-  {path: join("test", weirdName), directory: false, symlink: false},
+  !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
   {path: join("test/filesymlink"), directory: false, symlink: true},
   {path: join("test/dirsymlink"), directory: false, symlink: true},
 ]));
@@ -173,7 +177,7 @@ test("include", makeTest("test", {include: ["**/f*"]}, [
 
 test("include 2", makeTest("test", {include: ["**"]}, [
   {path: join("test/file"), directory: false, symlink: false},
-  {path: join("test", weirdName), directory: false, symlink: false},
+  !skipWeird && {path: join("test", weirdString), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
   {path: join("test/dir2"), directory: true, symlink: false},
@@ -210,7 +214,18 @@ test("error strict", async () => {
   expect(() => rrdir.sync("notfound", {strict: true})).toThrow();
 });
 
-test("read weird", makeTest("test", {include: ["**/x*"]}, async result => {
-  const path = join(testDir, result[0].path);
-  expect(await readFile(path, "utf8")).toEqual("test");
+test("buffer", makeTest(Buffer.from("test"), undefined, result => {
+  for (const entry of result) {
+    expect(Buffer.isBuffer(entry.path)).toEqual(true);
+  }
 }));
+
+if (!skipWeird) {
+  test("weird as string", makeTest("test", {include: ["**/x*"]}, async result => {
+    expect(Buffer.from(result[0].path).includes(weirdBuffer)).toEqual(false);
+  }));
+
+  test("weird as buffer", makeTest(Buffer.from("test"), {include: ["**/x*"]}, async result => {
+    expect(result[0].path.includes(weirdBuffer)).toEqual(true);
+  }));
+}

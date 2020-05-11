@@ -2,6 +2,9 @@ test:
 	yarn -s run eslint --color .
 	yarn -s run jest --color
 
+unittest:
+	yarn -s run jest --color --watchAll=true
+
 coverage:
 	yarn -s run jest --collectCoverage --coverageReporters text
 
@@ -26,4 +29,4 @@ major: test
 	yarn -s run versions -C major
 	$(MAKE) publish
 
-.PHONY: test coverage publish update patch minor major
+.PHONY: test unittest coverage publish update patch minor major
