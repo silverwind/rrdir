@@ -6,7 +6,7 @@ const del = require("del");
 const {chdir} = require("process");
 const {join} = require("path");
 const {test, expect, beforeAll, afterAll} = global;
-const {writeFileSync, mkdirSync, symlinkSync} = require("fs");
+const {writeFile, mkdir, symlink, readFile} = require("fs").promises;
 const {versions} = require("process");
 const {platform} = require("os");
 
@@ -17,17 +17,17 @@ const weirdName = String(Buffer.from([0x78, 0xef, 0xbf, 0xbd, 0x78]));
 const nodeVersion = parseInt(versions.node);
 const skipSymlink = nodeVersion < 12 && platform() === "win32";
 
-beforeAll(() => {
+beforeAll(async () => {
   chdir(testDir);
-  mkdirSync(join("test"));
-  mkdirSync(join("test/dir"));
-  mkdirSync(join("test/dir2"));
-  writeFileSync(join("test/file"), "test");
-  writeFileSync(join("test/dir/file"), "test");
-  writeFileSync(join("test/dir2/file"), "test");
-  writeFileSync(join("test", weirdName), "test");
-  symlinkSync(join("file"), join(("test/filesymlink")));
-  symlinkSync(join("dir"), join(("test/dirsymlink")));
+  await mkdir(join("test"));
+  await mkdir(join("test/dir"));
+  await mkdir(join("test/dir2"));
+  await writeFile(join("test/file"), "test");
+  await writeFile(join("test/dir/file"), "test");
+  await writeFile(join("test/dir2/file"), "test");
+  await writeFile(join("test", weirdName), "test");
+  await symlink(join("file"), join(("test/filesymlink")));
+  await symlink(join("dir"), join(("test/dirsymlink")));
 });
 
 afterAll(() => {
@@ -211,3 +211,8 @@ test("error strict", async () => {
   await expect(rrdir.async("notfound", {strict: true})).rejects.toThrow();
   expect(() => rrdir.sync("notfound", {strict: true})).toThrow();
 });
+
+test("read weird", makeTest("test", {include: ["**/x*"]}, async result => {
+  const path = join(testDir, result[0].path);
+  expect(await readFile(path, "utf8")).toEqual("test");
+}));
