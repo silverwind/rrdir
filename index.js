@@ -2,7 +2,7 @@
 
 const {readdir, stat, lstat} = require("fs").promises;
 const {readdirSync, statSync, lstatSync} = require("fs");
-const {sep} = require("path");
+const {join} = require("path");
 const picomatch = require("picomatch");
 
 const defaults = {
@@ -21,7 +21,7 @@ const readDirOpts = {
 };
 
 function makePath(entry, dir) {
-  return dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
+  return dir === "." ? entry.name : `${join(dir, entry.name)}`;
 }
 
 function build(dirent, path, stats, opts) {
