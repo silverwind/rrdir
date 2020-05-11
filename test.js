@@ -1,6 +1,7 @@
 "use strict";
 
 const rrdir = require(".");
+const del = require("del");
 const tempy = require("tempy");
 const {chdir} = require("process");
 const {join, sep} = require("path");
@@ -15,7 +16,8 @@ const weirdBuffer = Buffer.from([0x78, 0xf6, 0x6c, 0x78]); // this buffer does n
 const weirdString = String(weirdBuffer);
 
 const hasRecursiveRmdir = semver.gte(process.versions.node, "12.10.0");
-const skipSymlink = platform() === "win32"; // node on windows apparently sometimes can not follow symlink directories
+const isWindows = platform() === "win32";
+const skipSymlink = isWindows; // node on windows apparently sometimes can not follow symlink directories
 const skipWeird = (platform() === "darwin" || !hasRecursiveRmdir);
 
 beforeAll(async () => {
@@ -32,8 +34,11 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (!hasRecursiveRmdir) return;
-  await rmdir(testDir, {recursive: true});
+  if (hasRecursiveRmdir) {
+    await rmdir(testDir, {recursive: true, maxRetries: isWindows ? 50 : 0});
+  } else if (skipWeird) {
+    await del(testDir, {force: true});
+  }
 });
 
 function sort(entries = []) {
