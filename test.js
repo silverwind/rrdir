@@ -6,8 +6,9 @@ const del = require("del");
 const {chdir} = require("process");
 const {join, sep} = require("path");
 const {test, expect, beforeAll, afterAll} = global;
-const {writeFile, mkdir, symlink} = require("fs").promises;
+const {writeFile, mkdir, symlink, rmdir} = require("fs").promises;
 const {platform} = require("os");
+const semver = require("semver");
 
 const sepBuffer = Buffer.from(sep);
 const testDir = tempy.directory();
@@ -15,8 +16,9 @@ const weirdBuffer = Buffer.from([0x78, 0xf6, 0x6c, 0x78]); // this buffer does n
 const weirdString = String(weirdBuffer);
 
 // node on windows apparently sometimes can not follow symlink directories
+const hasRecursiveRmdir = semver.gte(process.version, "12.10.0");
 const skipSymlink = platform() === "win32";
-const skipWeird = platform() === "darwin";
+const skipWeird = (platform() === "darwin" || !hasRecursiveRmdir);
 
 beforeAll(async () => {
   chdir(testDir);
@@ -31,8 +33,12 @@ beforeAll(async () => {
   await symlink(join("dir"), join(("test/dirsymlink")));
 });
 
-afterAll(() => {
-  del.sync(testDir, {force: true});
+afterAll(async () => {
+  if (!hasRecursiveRmdir) {
+    await rmdir(testDir, {recursive: true});
+  } else {
+    await del(testDir, {force: true});
+  }
 });
 
 function sort(entries = []) {
