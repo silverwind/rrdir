@@ -11,6 +11,7 @@ const {versions} = require("process");
 const {platform} = require("os");
 
 const testDir = tempy.directory();
+const weirdName = String(Buffer.from([0x78, 0xef, 0xbf, 0xbd, 0x78]));
 
 // node v10 on windows apparently can not symlink directories
 const nodeVersion = parseInt(versions.node);
@@ -21,9 +22,10 @@ beforeAll(() => {
   mkdirSync(join("test"));
   mkdirSync(join("test/dir"));
   mkdirSync(join("test/dir2"));
-  writeFileSync(join("test/file"));
-  writeFileSync(join("test/dir/file"));
-  writeFileSync(join("test/dir2/file"));
+  writeFileSync(join("test/file"), "test");
+  writeFileSync(join("test/dir/file"), "test");
+  writeFileSync(join("test/dir2/file"), "test");
+  writeFileSync(join("test", weirdName), "test");
   symlinkSync(join("file"), join(("test/filesymlink")));
   symlinkSync(join("dir"), join(("test/dirsymlink")));
 });
@@ -60,6 +62,7 @@ function makeTest(dir, opts, expected) {
 
 test("basic", makeTest("test", undefined, [
   {path: join("test/file"), directory: false, symlink: false},
+  {path: join("test", weirdName), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
   {path: join("test/dir2"), directory: true, symlink: false},
@@ -70,6 +73,7 @@ test("basic", makeTest("test", undefined, [
 
 test("basic slash", makeTest("test/", undefined, [
   {path: join("test/file"), directory: false, symlink: false},
+  {path: join("test", weirdName), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
   {path: join("test/dir2"), directory: true, symlink: false},
@@ -81,6 +85,7 @@ test("basic slash", makeTest("test/", undefined, [
 if (!skipSymlink) {
   test("followSymlinks", makeTest("test", {followSymlinks: true}, [
     {path: join("test/file"), directory: false, symlink: false},
+    {path: join("test", weirdName), directory: false, symlink: false},
     {path: join("test/dir"), directory: true, symlink: false},
     {path: join("test/dir/file"), directory: false, symlink: false},
     {path: join("test/dir2"), directory: true, symlink: false},
@@ -101,6 +106,7 @@ test("nostats", makeTest("test", {stats: false}, result => {
 
 test("cwd", makeTest(".", undefined, [
   {path: join("test"), directory: true, symlink: false},
+  {path: join("test", weirdName), directory: false, symlink: false},
   {path: join("test/file"), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
@@ -112,6 +118,7 @@ test("cwd", makeTest(".", undefined, [
 
 test("cwdslash", makeTest("./", undefined, [
   {path: join("test"), directory: true, symlink: false},
+  {path: join("test", weirdName), directory: false, symlink: false},
   {path: join("test/file"), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
@@ -123,6 +130,7 @@ test("cwdslash", makeTest("./", undefined, [
 
 test("exclude", makeTest("test", {exclude: ["**/dir"]}, [
   {path: join("test/file"), directory: false, symlink: false},
+  {path: join("test", weirdName), directory: false, symlink: false},
   {path: join("test/dir2"), directory: true, symlink: false},
   {path: join("test/dir2/file"), directory: false, symlink: false},
   {path: join("test/filesymlink"), directory: false, symlink: true},
@@ -131,6 +139,7 @@ test("exclude", makeTest("test", {exclude: ["**/dir"]}, [
 
 test("exclude 2", makeTest("test", {exclude: ["**/dir2"]}, [
   {path: join("test/file"), directory: false, symlink: false},
+  {path: join("test", weirdName), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
   {path: join("test/filesymlink"), directory: false, symlink: true},
@@ -139,11 +148,13 @@ test("exclude 2", makeTest("test", {exclude: ["**/dir2"]}, [
 
 test("exclude 3", makeTest("test", {exclude: ["**/dir*"]}, [
   {path: join("test/file"), directory: false, symlink: false},
+  {path: join("test", weirdName), directory: false, symlink: false},
   {path: join("test/filesymlink"), directory: false, symlink: true},
 ]));
 
 test("exclude 4", makeTest("test", {exclude: ["**/dir", "**/dir2"]}, [
   {path: join("test/file"), directory: false, symlink: false},
+  {path: join("test", weirdName), directory: false, symlink: false},
   {path: join("test/filesymlink"), directory: false, symlink: true},
   {path: join("test/dirsymlink"), directory: false, symlink: true},
 ]));
@@ -164,6 +175,7 @@ test("include", makeTest("test", {include: ["**/f*"]}, [
 
 test("include 2", makeTest("test", {include: ["**"]}, [
   {path: join("test/file"), directory: false, symlink: false},
+  {path: join("test", weirdName), directory: false, symlink: false},
   {path: join("test/dir"), directory: true, symlink: false},
   {path: join("test/dir/file"), directory: false, symlink: false},
   {path: join("test/dir2"), directory: true, symlink: false},

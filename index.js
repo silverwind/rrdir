@@ -2,7 +2,7 @@
 
 const {readdir, stat, lstat} = require("fs").promises;
 const {readdirSync, statSync, lstatSync} = require("fs");
-const {sep} = require("path");
+const {join} = require("path");
 const picomatch = require("picomatch");
 
 const defaults = {
@@ -21,7 +21,7 @@ const readDirOpts = {
 };
 
 function makePath(entry, dir) {
-  return dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
+  return dir === "." ? entry.name : `${join(dir, entry.name)}`;
 }
 
 function build(dirent, path, stats, opts) {
@@ -76,7 +76,7 @@ const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher,
 
     let recurse = false;
     if (opts.followSymlinks && dirent.isSymbolicLink()) {
-      if (!stats) try { stats = await stat(path) } catch {}
+      if (!stats) try { stats = await stat(path); } catch {}
       if (stats && stats.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
@@ -124,7 +124,7 @@ module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher} =
 
     let recurse = false;
     if (opts.followSymlinks && dirent.isSymbolicLink()) {
-      if (!stats) try { stats = await stat(path) } catch {}
+      if (!stats) try { stats = await stat(path); } catch {}
       if (stats && stats.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
@@ -174,7 +174,7 @@ module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher} = {}) =>
 
     let recurse = false;
     if (opts.followSymlinks && dirent.isSymbolicLink()) {
-      if (!stats) try { stats = statSync(path) } catch {}
+      if (!stats) try { stats = statSync(path); } catch {}
       if (stats && stats.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
