@@ -2,7 +2,6 @@
 
 const rrdir = require(".");
 const tempy = require("tempy");
-const del = require("del");
 const {chdir} = require("process");
 const {join, sep} = require("path");
 const {test, expect, beforeAll, afterAll} = global;
@@ -33,11 +32,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (!hasRecursiveRmdir) {
-    await rmdir(testDir, {recursive: true});
-  } else {
-    await del(testDir, {force: true});
-  }
+  if (!hasRecursiveRmdir) return;
+  await rmdir(testDir, {recursive: true});
 });
 
 function sort(entries = []) {
@@ -104,7 +100,16 @@ if (!skipSymlink) {
 }
 
 test("stats", makeTest("test", {stats: true}, result => {
-  for (const entry of result) expect(entry.stats).toBeTruthy();
+  for (const {path, stats} of result) {
+    if (path.includes(weirdString)) continue;
+    expect(stats).toBeTruthy();
+  }
+}));
+
+test("stats buffer", makeTest(new Buffer("test"), {stats: true}, result => {
+  for (const {path, stats} of result) {
+    expect(stats).toBeTruthy();
+  }
 }));
 
 test("nostats", makeTest("test", {stats: false}, result => {
