@@ -7,15 +7,13 @@ const {chdir} = require("process");
 const {join} = require("path");
 const {test, expect, beforeAll, afterAll} = global;
 const {writeFile, mkdir, symlink, readFile} = require("fs").promises;
-const {versions} = require("process");
 const {platform} = require("os");
 
 const testDir = tempy.directory();
 const weirdName = String(Buffer.from([0x78, 0xef, 0xbf, 0xbd, 0x78]));
 
-// node v10 on windows apparently can not symlink directories
-const nodeVersion = parseInt(versions.node);
-const skipSymlink = nodeVersion < 12 && platform() === "win32";
+// node on windows apparently sometimes can not follow symlink directories
+const skipSymlink = platform() === "win32";
 
 beforeAll(async () => {
   chdir(testDir);
