@@ -18,7 +18,7 @@ const weirdString = String(weirdBuffer);
 const hasRecursiveRmdir = semver.gte(process.versions.node, "12.10.0");
 const isWindows = platform() === "win32";
 const skipSymlink = isWindows; // node on windows apparently sometimes can not follow symlink directories
-const skipWeird = (platform() === "darwin" || !hasRecursiveRmdir || isWindows);
+const skipWeird = platform() === "darwin" || !hasRecursiveRmdir || isWindows;
 
 beforeAll(async () => {
   chdir(testDir);
@@ -34,7 +34,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (hasRecursiveRmdir && !isWindows) {
+  if (hasRecursiveRmdir || isWindows) {
     await rmdir(testDir, {recursive: true, maxRetries: isWindows ? 50 : 0});
   } else if (skipWeird) {
     await del(testDir, {force: true});
