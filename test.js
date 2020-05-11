@@ -34,8 +34,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (hasRecursiveRmdir || isWindows) {
-    await rmdir(testDir, {recursive: true, maxRetries: isWindows ? 50 : 0});
+  if (isWindows) return; // avoid EBUSY errors
+  if (hasRecursiveRmdir) {
+    await rmdir(testDir, {recursive: true});
   } else if (skipWeird) {
     await del(testDir, {force: true});
   }
