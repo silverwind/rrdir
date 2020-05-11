@@ -35,6 +35,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (hasRecursiveRmdir) {
+    chdir(join(testDir, ".."));
     await rmdir(testDir, {recursive: true, maxRetries: isWindows ? 50 : 0});
   } else if (skipWeird) {
     await del(testDir, {force: true});
