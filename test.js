@@ -111,7 +111,7 @@ test("stats", makeTest("test", {stats: true}, result => {
   }
 }));
 
-test("stats buffer", makeTest(new Buffer("test"), {stats: true}, result => {
+test("stats buffer", makeTest(Buffer.from("test"), {stats: true}, result => {
   for (const {stats} of result) {
     expect(stats).toBeTruthy();
   }
