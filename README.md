@@ -33,7 +33,7 @@ const entries = rrdir.sync("dir");
 
 #### `dir` *String* | *Buffer*
 
-The directory to read. If you pass a `Buffer` here, `entry.path` will be a Buffer as well.
+The directory to read.
 
 #### `options` *Object*
 
@@ -46,7 +46,7 @@ The directory to read. If you pass a `Buffer` here, `entry.path` will be a Buffe
 
 #### `entry` *Object*
 
-- `path` *string* | *buffer*: The path to the entry, will be relative if `dir` is given relative. Always present.
+- `path` *string* | *Buffer*: The path to the entry, will be relative if `dir` is given relative. If `dir` is a Buffer, this will be too. Always present.
 - `directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
 - `symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. `undefined` on error.
 - `stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error.
