@@ -67,25 +67,31 @@ const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher,
     const path = makePath(dirent, dir, encoding);
     if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) continue;
 
+    const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
+
     let stats;
-    if (opts.stats) {
-      try {
-        stats = await (opts.followSymlinks ? stat : lstat)(path);
-      } catch (err) {
-        if (opts.strict) throw err;
-        yield {path, err};
+    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) {
+      if (opts.stats || isSymbolicLink) {
+        try {
+          stats = await (opts.followSymlinks ? stat : lstat)(path);
+        } catch (err) {
+          if (opts.strict) throw err;
+          yield {path, err};
+        }
       }
-    }
+
+      yield build(dirent, path, stats, opts)
+    };
 
     let recurse = false;
-    if (opts.followSymlinks && dirent.isSymbolicLink()) {
+    if (isSymbolicLink) {
       if (!stats) try { stats = await stat(path); } catch {}
       if (stats && stats.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
     }
 
-    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) yield build(dirent, path, stats, opts);
+
     if (recurse) yield* await rrdir(path, opts, {includeMatcher, excludeMatcher, encoding});
   }
 };
@@ -116,25 +122,31 @@ module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher, e
     const path = makePath(dirent, dir, encoding);
     if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) return;
 
+    const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
+
     let stats;
-    if (opts.stats) {
-      try {
-        stats = await (opts.followSymlinks ? stat : lstat)(path);
-      } catch (err) {
-        if (opts.strict) throw err;
-        results.push({path, err});
+
+    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) {
+      if (opts.stats || isSymbolicLink) {
+        try {
+          stats = await (opts.followSymlinks ? stat : lstat)(path);
+        } catch (err) {
+          if (opts.strict) throw err;
+          results.push({path, err});
+        }
       }
-    }
+
+      results.push(build(dirent, path, stats, opts))
+    };
 
     let recurse = false;
-    if (opts.followSymlinks && dirent.isSymbolicLink()) {
+    if (isSymbolicLink) {
       if (!stats) try { stats = await stat(path); } catch {}
       if (stats && stats.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
     }
 
-    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) results.push(build(dirent, path, stats, opts));
     if (recurse) results.push(...await module.exports.async(path, opts, {includeMatcher, excludeMatcher, encoding}));
   }));
 
@@ -167,25 +179,29 @@ module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher, encoding
     const path = makePath(dirent, dir, encoding);
     if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) continue;
 
+    const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
+
     let stats;
-    if (opts.stats) {
-      try {
-        stats = (opts.followSymlinks ? statSync : lstatSync)(path);
-      } catch (err) {
-        if (opts.strict) throw err;
-        results.push({path, err});
+    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) {
+      if (opts.stats || isSymbolicLink) {
+        try {
+          stats = (opts.followSymlinks ? statSync : lstatSync)(path);
+        } catch (err) {
+          if (opts.strict) throw err;
+          results.push({path, err});
+        }
       }
+      results.push(build(dirent, path, stats, opts));
     }
 
     let recurse = false;
-    if (opts.followSymlinks && dirent.isSymbolicLink()) {
+    if (isSymbolicLink) {
       if (!stats) try { stats = statSync(path); } catch {}
       if (stats && stats.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
     }
 
-    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) results.push(build(dirent, path, stats, opts));
     if (recurse) results.push(...module.exports.sync(path, opts, {includeMatcher, excludeMatcher, encoding}));
   }
 
