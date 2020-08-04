@@ -80,8 +80,8 @@ const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher,
         }
       }
 
-      yield build(dirent, path, stats, opts)
-    };
+      yield build(dirent, path, stats, opts);
+    }
 
     let recurse = false;
     if (isSymbolicLink) {
@@ -90,7 +90,6 @@ const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher,
     } else if (dirent.isDirectory()) {
       recurse = true;
     }
-
 
     if (recurse) yield* await rrdir(path, opts, {includeMatcher, excludeMatcher, encoding});
   }
@@ -136,8 +135,8 @@ module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher, e
         }
       }
 
-      results.push(build(dirent, path, stats, opts))
-    };
+      results.push(build(dirent, path, stats, opts));
+    }
 
     let recurse = false;
     if (isSymbolicLink) {
