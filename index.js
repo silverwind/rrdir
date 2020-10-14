@@ -68,9 +68,10 @@ const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher,
     if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) continue;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-
+    const isIncluded = !includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path);
     let stats;
-    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) {
+
+    if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
         try {
           stats = await (opts.followSymlinks ? stat : lstat)(path);
@@ -122,10 +123,10 @@ module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher, e
     if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) return;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-
+    const isIncluded = !includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path);
     let stats;
 
-    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) {
+    if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
         try {
           stats = await (opts.followSymlinks ? stat : lstat)(path);
@@ -179,9 +180,10 @@ module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher, encoding
     if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) continue;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-
+    const isIncluded = !includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path);
     let stats;
-    if (!includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path)) {
+
+    if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
         try {
           stats = (opts.followSymlinks ? statSync : lstatSync)(path);
