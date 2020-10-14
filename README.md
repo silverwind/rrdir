@@ -33,7 +33,7 @@ const entries = rrdir.sync("dir");
 
 #### `dir` *String* | *Buffer*
 
-The directory to read.
+The directory to read. Pass a `Buffer` if you want to be able to read every file, like for example files with names that are invalid UTF-8 sequences.
 
 #### `options` *Object*
 
