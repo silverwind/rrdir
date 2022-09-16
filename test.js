@@ -1,24 +1,18 @@
-"use strict";
-
-const rrdir = require(".");
-const del = require("del");
-const tempy = require("tempy");
-const {chdir} = require("process");
-const {join, sep} = require("path");
-const {test, expect, beforeAll, afterAll} = global;
-const {writeFile, mkdir, symlink, rmdir} = require("fs").promises;
-const {platform} = require("os");
-const semver = require("semver");
+import {rrdir, rrdirAsync, rrdirSync} from "./index.js";
+import {temporaryDirectory} from "tempy";
+import {chdir} from "process";
+import {join, sep} from "path";
+import {writeFile, mkdir, symlink, rmdir} from "fs/promises";
+import {platform} from "os";
 
 const sepBuffer = Buffer.from(sep);
-const testDir = tempy.directory();
+const testDir = temporaryDirectory();
 const weirdBuffer = Buffer.from([0x78, 0xf6, 0x6c, 0x78]); // this buffer does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
 const weirdString = String(weirdBuffer);
 
-const hasRecursiveRmdir = semver.gte(process.versions.node, "12.10.0");
 const isWindows = platform() === "win32";
 const skipSymlink = isWindows; // node on windows apparently sometimes can not follow symlink directories
-const skipWeird = platform() === "darwin" || !hasRecursiveRmdir || isWindows;
+const skipWeird = platform() === "darwin" || isWindows;
 
 beforeAll(async () => {
   chdir(testDir);
@@ -35,11 +29,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (isWindows) return; // avoid EBUSY errors
-  if (hasRecursiveRmdir) {
-    await rmdir(testDir, {recursive: true});
-  } else if (skipWeird) {
-    await del(testDir, {force: true});
-  }
+  await rmdir(testDir, {recursive: true});
 });
 
 function sort(entries = []) {
@@ -53,8 +43,8 @@ function makeTest(dir, opts, expected) {
   return async () => {
     const iteratorResults = [];
     for await (const result of rrdir(dir, opts)) iteratorResults.push(result);
-    const asyncResults = await rrdir.async(dir, opts);
-    const syncResults = rrdir.sync(dir, opts);
+    const asyncResults = await rrdirAsync(dir, opts);
+    const syncResults = rrdirSync(dir, opts);
 
     if (typeof expected === "function") {
       expected(iteratorResults);
@@ -226,8 +216,8 @@ test("error", makeTest("notfound", undefined, results => {
 
 test("error strict", async () => {
   await expect(rrdir("notfound", {strict: true}).next()).rejects.toThrow();
-  await expect(rrdir.async("notfound", {strict: true})).rejects.toThrow();
-  expect(() => rrdir.sync("notfound", {strict: true})).toThrow();
+  await expect(rrdirAsync("notfound", {strict: true})).rejects.toThrow();
+  expect(() => rrdirSync("notfound", {strict: true})).toThrow();
 });
 
 test("buffer", makeTest(Buffer.from("test"), undefined, result => {

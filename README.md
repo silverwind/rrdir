@@ -10,26 +10,26 @@
 npm i rrdir
 ```
 ```js
-const rrdir = require("rrdir");
+import {rrdir, rrdirAsync, rrdirSync} from "rrdir";
 
 for await (const entry of rrdir("dir")) {
   // => {path: 'dir/file', directory: false, symlink: false}
 }
 
-const entries = await rrdir.async("dir");
+const entries = await rrdirAsync("dir");
 // => [{path: 'dir/file', directory: false, symlink: false}]
 
-const entries = rrdir.sync("dir");
+const entries = rrdirSync("dir");
 // => [{path: 'dir/file', directory: false, symlink: false}]
 
 ```
 
 ## API
 ### `rrdir(dir, [options])`
-### `rrdir.async(dir, [options])`
-### `rrdir.sync(dir, [options])`
+### `rrdirAsync(dir, [options])`
+### `rrdirSync(dir, [options])`
 
-`rrdir` is an async iterator which yields `entry`. `rrdir.async` and `rrdir.sync` return an Array of `entry`.
+`rrdir` is an async iterator which yields `entry`. `rrdirAsync` and `rrdirSync` return an Array of `entry`.
 
 #### `dir` *String* | *Buffer*
 

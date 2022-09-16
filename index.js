@@ -1,9 +1,7 @@
-"use strict";
-
-const {readdir, stat, lstat} = require("fs").promises;
-const {readdirSync, statSync, lstatSync} = require("fs");
-const {sep} = require("path");
-const picomatch = require("picomatch");
+import {readdir, stat, lstat} from "fs/promises";
+import {readdirSync, statSync, lstatSync} from "fs";
+import {sep} from "path";
+import picomatch from "picomatch";
 
 const sepBuffer = Buffer.from(sep);
 
@@ -42,7 +40,7 @@ function makeMatchers({include, exclude, match}) {
   };
 }
 
-const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
+export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
@@ -94,9 +92,9 @@ const rrdir = module.exports = async function* (dir, opts = {}, {includeMatcher,
 
     if (recurse) yield* await rrdir(path, opts, {includeMatcher, excludeMatcher, encoding});
   }
-};
+}
 
-module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) => {
+export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
@@ -147,13 +145,13 @@ module.exports.async = async (dir, opts = {}, {includeMatcher, excludeMatcher, e
       recurse = true;
     }
 
-    if (recurse) results.push(...await module.exports.async(path, opts, {includeMatcher, excludeMatcher, encoding}));
+    if (recurse) results.push(...await rrdirAsync(path, opts, {includeMatcher, excludeMatcher, encoding}));
   }));
 
   return results;
-};
+}
 
-module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) => {
+export function rrdirSync(dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
   if (includeMatcher === undefined) {
     opts = Object.assign({}, defaults, opts);
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
@@ -203,8 +201,8 @@ module.exports.sync = (dir, opts = {}, {includeMatcher, excludeMatcher, encoding
       recurse = true;
     }
 
-    if (recurse) results.push(...module.exports.sync(path, opts, {includeMatcher, excludeMatcher, encoding}));
+    if (recurse) results.push(...rrdirSync(path, opts, {includeMatcher, excludeMatcher, encoding}));
   }
 
   return results;
-};
+}
