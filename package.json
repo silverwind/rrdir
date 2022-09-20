@@ -5,7 +5,7 @@
   "author": "silverwind <me@silverwind.io>",
   "repository": "silverwind/rrdir",
   "license": "BSD-2-Clause",
-  "main": "index.js",
+  "exports": "./index.js",
   "type": "module",
   "sideEffects": false,
   "engines": {
