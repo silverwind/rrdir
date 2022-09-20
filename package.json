@@ -36,12 +36,5 @@
     "crawl",
     "crawler",
     "scandir"
-  ],
-  "jest": {
-    "verbose": false,
-    "testTimeout": 10000,
-    "collectCoverageFrom": [
-      "*.js"
-    ]
-  }
+  ]
 }
