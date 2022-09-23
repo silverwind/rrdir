@@ -56,21 +56,17 @@ export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, en
   }
 
   let dirents = [];
-
   try {
     dirents = await readdir(dir, {encoding, withFileTypes: true});
   } catch (err) {
-    if (opts.strict) {
-      throw err;
-    } else {
-      yield {path: dir, err};
-    }
+    if (opts.strict) throw err;
+    yield {path: dir, err};
   }
   if (!dirents.length) return;
 
   for (const dirent of dirents) {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) continue;
+    if (excludeMatcher?.(encoding === "buffer" ? String(path) : path)) continue;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
     const isIncluded = !includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path);
@@ -111,21 +107,17 @@ export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher
 
   const results = [];
   let dirents = [];
-
   try {
     dirents = await readdir(dir, {encoding, withFileTypes: true});
   } catch (err) {
-    if (opts.strict) {
-      throw err;
-    } else {
-      results.push({path: dir, err});
-    }
+    if (opts.strict) throw err;
+    results.push({path: dir, err});
   }
   if (!dirents.length) return results;
 
   await Promise.all(dirents.map(async dirent => {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) return;
+    if (excludeMatcher?.(encoding === "buffer" ? String(path) : path)) return;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
     const isIncluded = !includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path);
@@ -168,21 +160,17 @@ export function rrdirSync(dir, opts = {}, {includeMatcher, excludeMatcher, encod
 
   const results = [];
   let dirents = [];
-
   try {
     dirents = readdirSync(dir, {encoding, withFileTypes: true});
   } catch (err) {
-    if (opts.strict) {
-      throw err;
-    } else {
-      results.push({path: dir, err});
-    }
+    if (opts.strict) throw err;
+    results.push({path: dir, err});
   }
   if (!dirents.length) return results;
 
   for (const dirent of dirents) {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher && excludeMatcher(encoding === "buffer" ? String(path) : path)) continue;
+    if (excludeMatcher?.(encoding === "buffer" ? String(path) : path)) continue;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
     const isIncluded = !includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path);
