@@ -1,7 +1,6 @@
 import {readdir, stat, lstat} from "fs/promises";
 import {readdirSync, statSync, lstatSync} from "fs";
 import {sep} from "path";
-import picomatch from "picomatch";
 
 const sepBuffer = Buffer.from(sep);
 
@@ -11,9 +10,6 @@ const defaults = {
   followSymlinks: false,
   exclude: undefined,
   include: undefined,
-  match: {
-    dot: true,
-  },
 };
 
 function makePath(entry, dir, encoding) {
@@ -33,10 +29,21 @@ function build(dirent, path, stats, opts) {
   };
 }
 
-function makeMatchers({include, exclude, match}) {
+function makeMatcher(filters) {
+  return str => {
+    for (const filter of filters) {
+      const re = new RegExp(`${filter.replace(/\*+/g, ".*").replace(/\/\.\*/, ".*")}$`);
+      const matches = re.test(str);
+      if (matches) return true;
+    }
+    return false;
+  };
+}
+
+function makeMatchers({include, exclude}) {
   return {
-    includeMatcher: include ? picomatch(include, match) : null,
-    excludeMatcher: exclude ? picomatch(exclude, match) : null,
+    includeMatcher: include ? makeMatcher(include) : null,
+    excludeMatcher: exclude ? makeMatcher(exclude) : null,
   };
 }
 
