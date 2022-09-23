@@ -3,7 +3,7 @@
 
 > Recursive directory reader with a delightful API
 
-`rrdir` recursively reads a directory and returns entries within via an async iterator or async/sync as Array. It has minimal dependencies and can typically iterate millions of files in a matter of seconds. Memory usage is `O(1)` for the async iterator and `O(n)` for the Array variants.
+`rrdir` recursively reads a directory and returns entries within via an async iterator or async/sync as Array. It has no dependencies and can typically iterate millions of files in a matter of seconds. Memory usage is `O(1)` for the async iterator and `O(n)` for the Array variants.
 
 ## Usage
 ```console
