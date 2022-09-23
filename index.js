@@ -30,11 +30,10 @@ function build(dirent, path, stats, opts) {
 }
 
 function makeMatcher(filters) {
+  const res = filters.map(f => new RegExp(`${f.replace(/\*+/g, ".*").replace(/\/\.\*/, ".*")}$`));
   return str => {
-    for (const filter of filters) {
-      const re = new RegExp(`${filter.replace(/\*+/g, ".*").replace(/\/\.\*/, ".*")}$`);
-      const matches = re.test(str);
-      if (matches) return true;
+    for (const re of res) {
+      if (re.test(str)) return true;
     }
     return false;
   };
