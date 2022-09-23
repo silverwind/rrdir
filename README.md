@@ -42,7 +42,6 @@ The directory to read, either absolute or relative. Pass a `Buffer` to switch th
 - `exclude` *Array*: Path globs to exclude, e.g. `["**/*.js"]`. Default: `undefined`.
 - `include` *Array*: Path globs to include, e.g. `["**/*.map"]`. Default: `undefined`.
 - `strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
-- `match` *Object*: [picomatch options](https://github.com/micromatch/picomatch#options). Default: `{dot: true}`.
 
 #### `entry` *Object*
 
