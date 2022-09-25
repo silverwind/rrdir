@@ -51,7 +51,7 @@ function makeTest(dir, opts, expected) {
       expected(asyncResults);
       expected(syncResults);
     } else {
-      expected = expected.filter(v => !!v);
+      expected = expected.filter(Boolean);
       expect(sort(iteratorResults)).toEqual(sort(expected));
       expect(sort(asyncResults)).toEqual(sort(expected));
       expect(sort(syncResults)).toEqual(sort(expected));
