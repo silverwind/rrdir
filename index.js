@@ -12,6 +12,8 @@ const defaults = {
   include: undefined,
 };
 
+const escRe = str => str.replace(/[|\\{}()[\]^$+*?.-]/g, "\\$&");
+
 function makePath(entry, dir, encoding) {
   if (encoding === "buffer") {
     return dir === "." ? entry.name : Buffer.from([...dir, ...sepBuffer, ...entry.name]);
@@ -30,7 +32,9 @@ function build(dirent, path, stats, opts) {
 }
 
 function makeMatcher(filters) {
-  const res = filters.map(f => new RegExp(`${f.replace(/\*+/g, ".*").replace(/\/\.\*/, ".*")}$`));
+  const res = filters.map(f => {
+    return new RegExp(`${escRe(f).replace(/\\\*+/g, ".*").replace(/\/\.\*/, ".*")}$`);
+  });
   return str => {
     for (const re of res) {
       if (re.test(str)) return true;
