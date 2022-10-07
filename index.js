@@ -10,6 +10,7 @@ const defaults = {
   followSymlinks: false,
   exclude: undefined,
   include: undefined,
+  insensitive: false,
 };
 
 const escRe = str => str.replace(/[|\\{}()[\]^$+*?.-]/g, "\\$&");
@@ -31,9 +32,9 @@ function build(dirent, path, stats, opts) {
   };
 }
 
-function makeMatcher(filters) {
+function makeMatcher(filters, flags) {
   const res = filters.map(f => {
-    return new RegExp(`${escRe(f).replace(/\\\*+/g, ".*").replace(/\/\.\*/, ".*")}$`);
+    return new RegExp(`${escRe(f).replace(/\\\*+/g, ".*").replace(/\/\.\*/, ".*")}$`, flags);
   });
   return str => {
     for (const re of res) {
@@ -43,10 +44,11 @@ function makeMatcher(filters) {
   };
 }
 
-function makeMatchers({include, exclude}) {
+function makeMatchers({include, exclude, insensitive}) {
+  const flags = insensitive ? "i" : "";
   return {
-    includeMatcher: include ? makeMatcher(include) : null,
-    excludeMatcher: exclude ? makeMatcher(exclude) : null,
+    includeMatcher: include ? makeMatcher(include, flags) : null,
+    excludeMatcher: exclude ? makeMatcher(exclude, flags) : null,
   };
 }
 
