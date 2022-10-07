@@ -54,7 +54,7 @@ function makeMatchers({include, exclude, insensitive}) {
 
 export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
   if (includeMatcher === undefined) {
-    opts = Object.assign({}, defaults, opts);
+    opts = {...defaults, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
     encoding = Buffer.isBuffer(dir) ? "buffer" : undefined;
@@ -104,7 +104,7 @@ export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, en
 
 export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
   if (includeMatcher === undefined) {
-    opts = Object.assign({}, defaults, opts);
+    opts = {...defaults, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
     encoding = Buffer.isBuffer(dir) ? "buffer" : undefined;
@@ -157,7 +157,7 @@ export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher
 
 export function rrdirSync(dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
   if (includeMatcher === undefined) {
-    opts = Object.assign({}, defaults, opts);
+    opts = {...defaults, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
     encoding = Buffer.isBuffer(dir) ? "buffer" : undefined;
