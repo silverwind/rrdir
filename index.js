@@ -15,7 +15,7 @@ const defaults = {
 
 const escRe = str => str.replace(/[|\\{}()[\]^$+*?.-]/g, "\\$&");
 
-function makePath(entry, dir, encoding) {
+export function makePath(entry, dir, encoding) {
   if (encoding === "buffer") {
     return dir === "." ? entry.name : Buffer.from([...dir, ...sepBuffer, ...entry.name]);
   } else {
