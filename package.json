@@ -17,7 +17,6 @@
   "devDependencies": {
     "eslint": "8.27.0",
     "eslint-config-silverwind": "62.0.0",
-    "tempy": "3.0.0",
     "updates": "13.2.1",
     "versions": "10.2.4",
     "vitest": "0.25.2"

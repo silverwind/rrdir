@@ -1,8 +1,8 @@
 import {rrdir, rrdirAsync, rrdirSync} from "./index.js";
-import {temporaryDirectory} from "tempy";
 import {join, sep} from "path";
 import {writeFile, mkdir, symlink, rmdir} from "fs/promises";
-import {platform} from "os";
+import {mkdtempSync} from "fs";
+import {platform, tmpdir} from "os";
 
 const sepBuffer = Buffer.from(sep);
 const weirdBuffer = Buffer.from([0x78, 0xf6, 0x6c, 0x78]); // this buffer does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
@@ -11,7 +11,7 @@ const weirdString = String(weirdBuffer);
 const isWindows = platform() === "win32";
 const skipSymlink = isWindows; // node on windows apparently sometimes can not follow symlink directories
 const skipWeird = platform() === "darwin" || isWindows;
-const testDir = temporaryDirectory();
+const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
 
 function joinBuffer(a, b) {
   return Buffer.from([...Buffer.from(a), ...sepBuffer, ...Buffer.from(b)]);
