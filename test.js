@@ -5,11 +5,15 @@ import {mkdtempSync} from "fs";
 import {platform, tmpdir} from "os";
 
 const sepBuffer = Buffer.from(sep);
-const weirdBuffer = Buffer.from([0x78, 0xf6, 0x6c, 0x78]); // this buffer does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
+
+// this buffer does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
+const weirdBuffer = Buffer.from([0x78, 0xf6, 0x6c, 0x78]);
 const weirdString = String(weirdBuffer);
 
+// node on windows apparently sometimes can not follow symlink directories
 const isWindows = platform() === "win32";
-const skipSymlink = isWindows; // node on windows apparently sometimes can not follow symlink directories
+const skipSymlink = isWindows;
+
 const skipWeird = platform() === "darwin" || isWindows;
 const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
 
