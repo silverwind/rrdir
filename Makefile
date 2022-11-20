@@ -10,7 +10,7 @@ lint: node_modules
 	npx eslint --color .
 
 .PHONY: test
-test: node_modules
+test: lint node_modules
 	npx vitest
 
 .PHONY: publish
