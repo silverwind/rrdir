@@ -1,8 +1,8 @@
 import {rrdir, rrdirAsync, rrdirSync} from "./index.js";
-import {join, sep} from "path";
-import {writeFile, mkdir, symlink, rmdir} from "fs/promises";
-import {mkdtempSync} from "fs";
-import {platform, tmpdir} from "os";
+import {join, sep} from "node:path";
+import {writeFile, mkdir, symlink, rmdir} from "node:fs/promises";
+import {mkdtempSync} from "node:fs";
+import {platform, tmpdir} from "node:os";
 
 const sepBuffer = Buffer.from(sep);
 

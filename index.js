@@ -1,6 +1,6 @@
-import {readdir, stat, lstat} from "fs/promises";
-import {readdirSync, statSync, lstatSync} from "fs";
-import {sep} from "path";
+import {readdir, stat, lstat} from "node:fs/promises";
+import {readdirSync, statSync, lstatSync} from "node:fs";
+import {sep} from "node:path";
 
 const sepBuffer = Buffer.from(sep);
 
