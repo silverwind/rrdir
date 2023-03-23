@@ -30,7 +30,8 @@ function build(dirent, path, stats, opts) {
   };
 }
 
-export function globToRegex(glob, flags) {
+export function globToRegex(glob, {flags = undefined, sep = "/"} = {flags: undefined, sep: "/"}) {
+  if (sep === "\\") sep = "\\\\";
   return new RegExp(`${glob
     .replace(/[|\\{}()[\]^$+.-]/g, "\\$&")
     .replace(new RegExp(`\\*\\*${sep}\\*`, "g"), ".*")
@@ -44,7 +45,7 @@ export function globToRegex(glob, flags) {
 }
 
 function makeMatcher(filters, flags) {
-  const regexes = filters.map(filter => globToRegex(filter, flags));
+  const regexes = filters.map(filter => globToRegex(filter, {flags, sep}));
   return str => {
     for (const regex of regexes) {
       if (regex.test(str)) return true;

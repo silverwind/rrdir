@@ -235,6 +235,7 @@ if (!skipWeird) {
 
 test("globToRegex", () => {
   expect(globToRegex("**/f*")).toEqual(/.*\/f[^/]*$/);
+  expect(globToRegex("**\\f*", {sep: "\\"})).toEqual(/.*\\f[^\\]*$/);
   expect(globToRegex("foo/**/*.js")).toEqual(/foo\/.*\.js$/);
   expect(globToRegex("**/dir2/**")).toEqual(/.*\/dir2.*$/);
   expect(globToRegex("**/*.js")).toEqual(/.*\.js$/);
