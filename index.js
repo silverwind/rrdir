@@ -13,8 +13,6 @@ const defaults = {
   insensitive: false,
 };
 
-const escRe = str => str.replace(/[|\\{}()[\]^$+*?.-]/g, "\\$&");
-
 function makePath(entry, dir, encoding) {
   if (encoding === "buffer") {
     return dir === "." ? entry.name : Buffer.from([...dir, ...sepBuffer, ...entry.name]);
@@ -32,16 +30,24 @@ function build(dirent, path, stats, opts) {
   };
 }
 
+export function globToRegex(glob, flags) {
+  return new RegExp(`${glob
+    .replace(/[|\\{}()[\]^$+.-]/g, "\\$&")
+    .replace(new RegExp(`\\*\\*${sep}\\*`, "g"), ".*")
+    .replace(/^\*\*/g, ".*")
+    .replace(new RegExp(`${sep}?\\*\\*$`, "g"), ".*")
+    .replace(new RegExp(`(${sep})\\*\\*(${sep})`, "g"), (_, p1, p2) => `${p1}.*${p2}`)
+    .replace(/([^.])\*/g, (_, p1) => `${p1}[^${sep}]*`)
+    .replaceAll("**", "*")
+    .replaceAll("?", ".")
+  }$`, flags);
+}
+
 function makeMatcher(filters, flags) {
-  const res = filters.map(f => {
-    return new RegExp(`${escRe(f)
-      .replace(/\\\*+/g, ".*")
-      .replace(/\/\.\*/, ".*")
-      .replace(/(\.\*){2,}/, ".*")}$`, flags);
-  });
+  const regexes = filters.map(filter => globToRegex(filter, flags));
   return str => {
-    for (const re of res) {
-      if (re.test(str)) return true;
+    for (const regex of regexes) {
+      if (regex.test(str)) return true;
     }
     return false;
   };
