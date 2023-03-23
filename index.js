@@ -34,7 +34,10 @@ function build(dirent, path, stats, opts) {
 
 function makeMatcher(filters, flags) {
   const res = filters.map(f => {
-    return new RegExp(`${escRe(f).replace(/\\\*+/g, ".*").replace(/\/\.\*/, ".*")}$`, flags);
+    return new RegExp(`${escRe(f)
+      .replace(/\\\*+/g, ".*")
+      .replace(/\/\.\*/, ".*")
+      .replace(/(\.\*){2,}/, ".*")}$`, flags);
   });
   return str => {
     for (const re of res) {
