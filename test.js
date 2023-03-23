@@ -1,4 +1,4 @@
-import {rrdir, rrdirAsync, rrdirSync, globToRegex} from "./index.js";
+import {rrdir, rrdirAsync, rrdirSync, pathGlobToRegex} from "./index.js";
 import {join, sep} from "node:path";
 import {writeFile, mkdir, symlink, rmdir} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
@@ -233,10 +233,12 @@ if (!skipWeird) {
   }));
 }
 
-test("globToRegex", () => {
-  expect(globToRegex("**/f*")).toEqual(/.*\/f[^/]*$/);
-  expect(globToRegex("**\\f*", {sep: "\\"})).toEqual(/.*\\f[^\\]*$/);
-  expect(globToRegex("foo/**/*.js")).toEqual(/foo\/.*\.js$/);
-  expect(globToRegex("**/dir2/**")).toEqual(/.*\/dir2.*$/);
-  expect(globToRegex("**/*.js")).toEqual(/.*\.js$/);
+test("pathGlobToRegex", () => {
+  expect(pathGlobToRegex("**/f*")).toEqual(/.*\/f[^/]*$/);
+  expect(pathGlobToRegex("**\\f*", {sep: "\\"})).toEqual(/.*\\f[^\\]*$/);
+  expect(pathGlobToRegex("foo/**/*.js")).toEqual(/foo\/.*\.js$/);
+  expect(pathGlobToRegex("**/dir2/**")).toEqual(/.*\/dir2.*$/);
+  expect(pathGlobToRegex("**/*.js")).toEqual(/.*\.js$/);
+  expect(pathGlobToRegex("a")).toEqual(/a$/);
+  expect(pathGlobToRegex("?")).toEqual(/.$/);
 });
