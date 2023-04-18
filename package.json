@@ -17,8 +17,8 @@
   "devDependencies": {
     "eslint": "8.38.0",
     "eslint-config-silverwind": "65.1.5",
-    "updates": "13.4.0",
-    "versions": "10.4.3",
+    "updates": "14.0.1",
+    "versions": "11.0.0",
     "vitest": "0.30.1"
   },
   "keywords": [
