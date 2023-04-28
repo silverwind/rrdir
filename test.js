@@ -1,6 +1,6 @@
 import {rrdir, rrdirAsync, rrdirSync, pathGlobToRegex} from "./index.js";
 import {join, sep} from "node:path";
-import {writeFile, mkdir, symlink, rmdir} from "node:fs/promises";
+import {writeFile, mkdir, symlink, rm} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
 import {platform, tmpdir} from "node:os";
 
@@ -35,7 +35,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await rmdir(testDir, {recursive: true});
+  await rm(testDir, {recursive: true});
 });
 
 function sort(entries = []) {
