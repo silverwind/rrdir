@@ -30,22 +30,20 @@ function build(dirent, path, stats, opts) {
   };
 }
 
-export function pathGlobToRegex(glob, {flags = undefined, sep = "/"} = {flags: undefined, sep: "/"}) {
-  if (sep === "\\") sep = "\\\\";
+export function pathGlobToRegex(glob, {flags = undefined} = {flags: undefined}) {
   return new RegExp(`${glob
     .replace(/[|\\{}()[\]^$+.-]/g, "\\$&")
-    .replace(/\*\*[/\\]\*/, ".*")
-    .replace(/^\*\*/g, ".*")
-    .replace(new RegExp(`${sep}?\\*\\*$`, "g"), ".*")
-    .replace(new RegExp(`(${sep})\\*\\*(${sep})`, "g"), (_, p1, p2) => `${p1}.*${p2}`)
-    .replace(/([^.])\*/g, (_, p1) => `${p1}[^${sep}]*`)
+    .replace(/\*\*\/\*/, ".*")
+    .replace(/\*\*/g, ".*")
+    .replace(/\//g, "[/\\\\]")
+    .replace(/([^.])\*/g, (_, p1) => `${p1}[^/\\\\]*`)
     .replaceAll("**", "*")
     .replaceAll("?", ".")
   }$`, flags);
 }
 
 function makeMatcher(filters, flags) {
-  const regexes = filters.map(filter => pathGlobToRegex(filter, {flags, sep}));
+  const regexes = filters.map(filter => pathGlobToRegex(filter, {flags}));
   return str => {
     for (const regex of regexes) {
       if (regex.test(str)) return true;
@@ -84,7 +82,8 @@ export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, en
     if (excludeMatcher?.(encoding === "buffer" ? String(path) : path)) continue;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-    const isIncluded = !includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path);
+    const encodedPath = encoding === "buffer" ? String(path) : path;
+    const isIncluded = !includeMatcher || includeMatcher(encodedPath);
     let stats;
 
     if (isIncluded) {
@@ -135,7 +134,8 @@ export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher
     if (excludeMatcher?.(encoding === "buffer" ? String(path) : path)) return;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-    const isIncluded = !includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path);
+    const encodedPath = encoding === "buffer" ? String(path) : path;
+    const isIncluded = !includeMatcher || includeMatcher(encodedPath);
     let stats;
 
     if (isIncluded) {
@@ -188,7 +188,8 @@ export function rrdirSync(dir, opts = {}, {includeMatcher, excludeMatcher, encod
     if (excludeMatcher?.(encoding === "buffer" ? String(path) : path)) continue;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-    const isIncluded = !includeMatcher || includeMatcher(encoding === "buffer" ? String(path) : path);
+    const encodedPath = encoding === "buffer" ? String(path) : path;
+    const isIncluded = !includeMatcher || includeMatcher(encodedPath);
     let stats;
 
     if (isIncluded) {
