@@ -239,6 +239,7 @@ test("pathGlobToRegex", () => {
   expect(pathGlobToRegex("foo/**/*.js")).toEqual(/foo\/.*\.js$/);
   expect(pathGlobToRegex("**/dir2/**")).toEqual(/.*\/dir2.*$/);
   expect(pathGlobToRegex("**/*.js")).toEqual(/.*\.js$/);
+  expect(pathGlobToRegex("**/*.js", {sep: "\\"})).toEqual(/.*\.js$/);
   expect(pathGlobToRegex("a")).toEqual(/a$/);
   expect(pathGlobToRegex("?")).toEqual(/.$/);
 });

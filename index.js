@@ -34,7 +34,7 @@ export function pathGlobToRegex(glob, {flags = undefined, sep = "/"} = {flags: u
   if (sep === "\\") sep = "\\\\";
   return new RegExp(`${glob
     .replace(/[|\\{}()[\]^$+.-]/g, "\\$&")
-    .replace(new RegExp(`\\*\\*${sep}\\*`, "g"), ".*")
+    .replace(/\*\*[/\\]\*/, ".*")
     .replace(/^\*\*/g, ".*")
     .replace(new RegExp(`${sep}?\\*\\*$`, "g"), ".*")
     .replace(new RegExp(`(${sep})\\*\\*(${sep})`, "g"), (_, p1, p2) => `${p1}.*${p2}`)
