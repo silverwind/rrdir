@@ -30,7 +30,7 @@ function build(dirent, path, stats, opts) {
   };
 }
 
-export function pathGlobToRegex(glob, {flags = undefined} = {flags: undefined}) {
+export function pathGlobToRegex(glob, {flags = undefined} = {}) {
   return new RegExp(`${glob
     .replace(/[|\\{}()[\]^$+.-]/g, "\\$&")
     .replace(/\*\*\/\*/, ".*")
