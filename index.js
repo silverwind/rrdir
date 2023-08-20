@@ -37,8 +37,8 @@ function makeMatchers({include, exclude, insensitive}) {
     flags: insensitive ? "i" : undefined,
   };
   return {
-    includeMatcher: include ? picomatch(include, opts) : null,
-    excludeMatcher: exclude ? picomatch(exclude, opts) : null,
+    includeMatcher: include?.length ? picomatch(include, opts) : null,
+    excludeMatcher: exclude?.length ? picomatch(exclude, opts) : null,
   };
 }
 
