@@ -19,6 +19,11 @@ exports[`basic 1`] = `
   },
   {
     "directory": false,
+    "path": "test/dir2/exclude.txt",
+    "symlink": false,
+  },
+  {
+    "directory": false,
     "path": "test/dir2/file",
     "symlink": false,
   },
@@ -64,6 +69,11 @@ exports[`basic slash 1`] = `
   },
   {
     "directory": false,
+    "path": "test/dir2/exclude.txt",
+    "symlink": false,
+  },
+  {
+    "directory": false,
     "path": "test/dir2/file",
     "symlink": false,
   },
@@ -95,6 +105,11 @@ exports[`exclude 1`] = `
   {
     "directory": true,
     "path": "test/dir2",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.txt",
     "symlink": false,
   },
   {
@@ -192,6 +207,51 @@ exports[`exclude 4 1`] = `
 
 exports[`exclude 5 1`] = `[]`;
 
+exports[`exclude 6 1`] = `
+[
+  {
+    "directory": true,
+    "path": "test/dir",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir/file",
+    "symlink": false,
+  },
+  {
+    "directory": true,
+    "path": "test/dir2",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/file",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/UPPER",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dirsymlink",
+    "symlink": true,
+  },
+  {
+    "directory": false,
+    "path": "test/file",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/filesymlink",
+    "symlink": true,
+  },
+]
+`;
+
 exports[`exclude include 1`] = `
 [
   {
@@ -222,6 +282,11 @@ exports[`followSymlinks 1`] = `
   {
     "directory": true,
     "path": "test/dir2",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.txt",
     "symlink": false,
   },
   {
@@ -301,6 +366,11 @@ exports[`include 2 1`] = `
   },
   {
     "directory": false,
+    "path": "test/dir2/exclude.txt",
+    "symlink": false,
+  },
+  {
+    "directory": false,
     "path": "test/dir2/file",
     "symlink": false,
   },
@@ -336,6 +406,11 @@ exports[`include 3 1`] = `
   },
   {
     "directory": false,
+    "path": "test/dir2/exclude.txt",
+    "symlink": false,
+  },
+  {
+    "directory": false,
     "path": "test/dir2/file",
     "symlink": false,
   },
@@ -354,6 +429,16 @@ exports[`include 5 1`] = `
   {
     "directory": true,
     "path": "test/dir",
+    "symlink": false,
+  },
+]
+`;
+
+exports[`include 6 1`] = `
+[
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.txt",
     "symlink": false,
   },
 ]

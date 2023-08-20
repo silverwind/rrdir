@@ -29,6 +29,7 @@ beforeAll(async () => {
   await writeFile(join(testDir, "test/dir/file"), "test");
   await writeFile(join(testDir, "test/dir2/file"), "test");
   await writeFile(join(testDir, "test/dir2/UPPER"), "test");
+  await writeFile(join(testDir, "test/dir2/exclude.txt"), "test");
   if (!skipWeird) await writeFile(joinBuffer(join(testDir, "test"), weirdBuffer), "test");
   await symlink(join(testDir, "test/file"), join(testDir, "test/filesymlink"));
   await symlink(join(testDir, "test/dir"), join(testDir, "test/dirsymlink"));
@@ -113,6 +114,7 @@ test("exclude 2", makeTest("test", {exclude: ["**/dir2"]}));
 test("exclude 3", makeTest("test", {exclude: ["**/dir*"]}));
 test("exclude 4", makeTest("test", {exclude: ["**/dir", "**/dir2"]}));
 test("exclude 5", makeTest("test", {exclude: ["**"]}, []));
+test("exclude 6", makeTest("test", {exclude: ["**/*.txt"]}, []));
 
 test("exclude stats", makeTest("test", {exclude: ["**/dir", "**/dir2"], stats: true}, result => {
   const file = result.find(entry => entry.path === join(testDir, "test/file"));
@@ -128,6 +130,7 @@ test("include 2", makeTest("test", {include: ["**"]}));
 test("include 3", makeTest("test", {include: ["**/dir2/**"]}));
 test("include 4", makeTest("test", {include: ["**/dir/"]}));
 test("include 5", makeTest("test", {include: ["**/dir"]}));
+test("include 6", makeTest("test", {include: ["**/*.txt"]}, []));
 test("insensitive", makeTest("test", {include: ["**/u*"], insensitive: true}));
 test("exclude include", makeTest("test", {exclude: ["**/dir2"], include: ["**/file"]}));
 
