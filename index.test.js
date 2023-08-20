@@ -1,4 +1,4 @@
-import {rrdir, rrdirAsync, rrdirSync, pathGlobToRegex} from "./index.js";
+import {rrdir, rrdirAsync, rrdirSync} from "./index.js";
 import {join, sep} from "node:path";
 import {writeFile, mkdir, symlink, rm} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
@@ -185,6 +185,7 @@ test("include 2", makeTest("test", {include: ["**"]}, [
 ]));
 
 test("include 3", makeTest("test", {include: ["**/dir2/**"]}, [
+  {path: join(testDir, "test/dir2"), directory: true, symlink: false},
   {path: join(testDir, "test/dir2/file"), directory: false, symlink: false},
   {path: join(testDir, "test/dir2/UPPER"), directory: false, symlink: false},
 ]));
@@ -231,12 +232,3 @@ if (!skipWeird) {
     expect(result[0].path.includes(weirdBuffer)).toEqual(true);
   }));
 }
-
-test("pathGlobToRegex", () => {
-  expect(pathGlobToRegex("**/f*")).toEqual(/.*[/\\]f[^/\\]*$/);
-  expect(pathGlobToRegex("foo/**/*.js")).toEqual(/foo[/\\].*\.js$/);
-  expect(pathGlobToRegex("**/dir2/**")).toEqual(/.*[/\\]dir2[/\\].*$/);
-  expect(pathGlobToRegex("**/*.js")).toEqual(/.*\.js$/);
-  expect(pathGlobToRegex("a")).toEqual(/a$/);
-  expect(pathGlobToRegex("?")).toEqual(/.$/);
-});

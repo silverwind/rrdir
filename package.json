@@ -32,5 +32,8 @@
     "crawl",
     "crawler",
     "scandir"
-  ]
+  ],
+  "dependencies": {
+    "picomatch": "2.3.1"
+  }
 }

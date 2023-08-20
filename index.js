@@ -1,6 +1,7 @@
 import {readdir, stat, lstat} from "node:fs/promises";
 import {readdirSync, statSync, lstatSync} from "node:fs";
 import {sep} from "node:path";
+import picomatch from "picomatch";
 
 const sepBuffer = Buffer.from(sep);
 
@@ -30,33 +31,14 @@ function build(dirent, path, stats, opts) {
   };
 }
 
-export function pathGlobToRegex(glob, {flags = undefined} = {}) {
-  return new RegExp(`${glob
-    .replace(/[|\\{}()[\]^$+.-]/g, "\\$&")
-    .replace(/\*\*\/\*/, ".*")
-    .replace(/\*\*/g, ".*")
-    .replace(/\//g, "[/\\\\]")
-    .replace(/([^.])\*/g, (_, p1) => `${p1}[^/\\\\]*`)
-    .replaceAll("**", "*")
-    .replaceAll("?", ".")
-  }$`, flags);
-}
-
-function makeMatcher(filters, flags) {
-  const regexes = filters.map(filter => pathGlobToRegex(filter, {flags}));
-  return str => {
-    for (const regex of regexes) {
-      if (regex.test(str)) return true;
-    }
-    return false;
-  };
-}
-
 function makeMatchers({include, exclude, insensitive}) {
-  const flags = insensitive ? "i" : "";
+  const opts = {
+    dot: true,
+    flags: insensitive ? "i" : undefined,
+  };
   return {
-    includeMatcher: include ? makeMatcher(include, flags) : null,
-    excludeMatcher: exclude ? makeMatcher(exclude, flags) : null,
+    includeMatcher: include ? picomatch(include, opts) : null,
+    excludeMatcher: exclude ? picomatch(exclude, opts) : null,
   };
 }
 
