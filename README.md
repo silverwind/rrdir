@@ -39,8 +39,8 @@ The directory to read, either absolute or relative. Pass a `Buffer` to switch th
 
 - `stats` *boolean*: Whether to include `entry.stats`. Will reduce performance. Default: `false`.
 - `followSymlinks` *boolean*: Whether to follow symlinks for both recursion and `stat` calls. Default: `false`.
-- `exclude` *Array*: Path globs to exclude, e.g. `["**/*.js"]`. Default: `undefined`.
-- `include` *Array*: Path globs to include, e.g. `["**/*.map"]`. Default: `undefined`.
+- `exclude` *Array*: Path globs to exclude, e.g. `["**.js"]`. Default: `undefined`.
+- `include` *Array*: Path globs to include, e.g. `["**.map"]`. Default: `undefined`.
 - `strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
 - `insensitive` *boolean*: Whether `include` and `exclude` match case-insensitively. Default: `false`.
 

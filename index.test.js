@@ -116,7 +116,7 @@ test("exclude 2", makeTest("test", {exclude: ["**/dir2"]}));
 test("exclude 3", makeTest("test", {exclude: ["**/dir*"]}));
 test("exclude 4", makeTest("test", {exclude: ["**/dir", "**/dir2"]}));
 test("exclude 5", makeTest("test", {exclude: ["**"]}, []));
-test("exclude 6", makeTest("test", {exclude: ["**/*.txt"]}, []));
+test("exclude 6", makeTest("test", {exclude: ["**.txt"]}, []));
 test("exclude 7", makeTest("test", {exclude: ["**.txt", "**.md"]}, []));
 
 test("exclude stats", makeTest("test", {exclude: ["**/dir", "**/dir2"], stats: true}, result => {
@@ -133,7 +133,7 @@ test("include 2", makeTest("test", {include: ["**"]}));
 test("include 3", makeTest("test", {include: ["**/dir2/**"]}));
 test("include 4", makeTest("test", {include: ["**/dir/"]}));
 test("include 5", makeTest("test", {include: ["**/dir"]}));
-test("include 6", makeTest("test", {include: ["**/*.txt"]}, []));
+test("include 6", makeTest("test", {include: ["**.txt"]}, []));
 test("insensitive", makeTest("test", {include: ["**/u*"], insensitive: true}));
 test("exclude include", makeTest("test", {exclude: ["**/dir2"], include: ["**/file"]}));
 
