@@ -39,15 +39,10 @@ function makeMatchers({include, exclude, insensitive}) {
 
   // resolve the path to an absolute one because picomatch can not deal properly
   // with relative paths that start with ./ or .\
-  // > (await import("picomatch")).default(["**.js"])("./foo.js")
-  // false
+  // https://github.com/micromatch/picomatch/issues/121
   return {
-    includeMatcher: include?.length ? (path => {
-      return picomatch(include, opts)(resolve(path));
-    }) : null,
-    excludeMatcher: exclude?.length ? (path => {
-      return picomatch(exclude, opts)(resolve(path));
-    }) : null,
+    includeMatcher: include?.length ? path => picomatch(include, opts)(resolve(path)) : null,
+    excludeMatcher: exclude?.length ? path => picomatch(exclude, opts)(resolve(path)) : null,
   };
 }
 
