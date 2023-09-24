@@ -12,7 +12,7 @@
     "node": ">=18"
   },
   "files": [
-    "index.js"
+    "./index.js"
   ],
   "devDependencies": {
     "eslint": "8.50.0",
@@ -22,17 +22,6 @@
     "vitest": "0.34.5",
     "vitest-config-silverwind": "3.0.0"
   },
-  "keywords": [
-    "recursive readdir",
-    "readdir",
-    "recursive",
-    "walk",
-    "walkdir",
-    "directory",
-    "crawl",
-    "crawler",
-    "scandir"
-  ],
   "dependencies": {
     "picomatch": "2.3.1"
   }
