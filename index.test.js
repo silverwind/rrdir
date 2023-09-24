@@ -117,6 +117,7 @@ test("exclude 3", makeTest("test", {exclude: ["**/dir*"]}));
 test("exclude 4", makeTest("test", {exclude: ["**/dir", "**/dir2"]}));
 test("exclude 5", makeTest("test", {exclude: ["**"]}, []));
 test("exclude 6", makeTest("test", {exclude: ["**/*.txt"]}, []));
+test("exclude 7", makeTest("test", {exclude: ["**.txt", "**.md"]}, []));
 
 test("exclude stats", makeTest("test", {exclude: ["**/dir", "**/dir2"], stats: true}, result => {
   const file = result.find(entry => entry.path === join(testDir, "test/file"));
