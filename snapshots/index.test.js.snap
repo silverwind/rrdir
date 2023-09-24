@@ -19,6 +19,16 @@ exports[`basic 1`] = `
   },
   {
     "directory": false,
+    "path": "test/dir2/exclude.css",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.md",
+    "symlink": false,
+  },
+  {
+    "directory": false,
     "path": "test/dir2/exclude.txt",
     "symlink": false,
   },
@@ -69,6 +79,16 @@ exports[`basic slash 1`] = `
   },
   {
     "directory": false,
+    "path": "test/dir2/exclude.css",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.md",
+    "symlink": false,
+  },
+  {
+    "directory": false,
     "path": "test/dir2/exclude.txt",
     "symlink": false,
   },
@@ -105,6 +125,16 @@ exports[`exclude 1`] = `
   {
     "directory": true,
     "path": "test/dir2",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.css",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.md",
     "symlink": false,
   },
   {
@@ -226,6 +256,16 @@ exports[`exclude 6 1`] = `
   },
   {
     "directory": false,
+    "path": "test/dir2/exclude.css",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.md",
+    "symlink": false,
+  },
+  {
+    "directory": false,
     "path": "test/dir2/file",
     "symlink": false,
   },
@@ -282,6 +322,16 @@ exports[`followSymlinks 1`] = `
   {
     "directory": true,
     "path": "test/dir2",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.css",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.md",
     "symlink": false,
   },
   {
@@ -366,6 +416,16 @@ exports[`include 2 1`] = `
   },
   {
     "directory": false,
+    "path": "test/dir2/exclude.css",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.md",
+    "symlink": false,
+  },
+  {
+    "directory": false,
     "path": "test/dir2/exclude.txt",
     "symlink": false,
   },
@@ -402,6 +462,16 @@ exports[`include 3 1`] = `
   {
     "directory": true,
     "path": "test/dir2",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.css",
+    "symlink": false,
+  },
+  {
+    "directory": false,
+    "path": "test/dir2/exclude.md",
     "symlink": false,
   },
   {

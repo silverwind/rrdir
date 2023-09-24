@@ -30,6 +30,8 @@ beforeAll(async () => {
   await writeFile(join(testDir, "test/dir2/file"), "test");
   await writeFile(join(testDir, "test/dir2/UPPER"), "test");
   await writeFile(join(testDir, "test/dir2/exclude.txt"), "test");
+  await writeFile(join(testDir, "test/dir2/exclude.md"), "test");
+  await writeFile(join(testDir, "test/dir2/exclude.css"), "test");
   if (!skipWeird) await writeFile(joinBuffer(join(testDir, "test"), weirdBuffer), "test");
   await symlink(join(testDir, "test/file"), join(testDir, "test/filesymlink"));
   await symlink(join(testDir, "test/dir"), join(testDir, "test/dirsymlink"));
