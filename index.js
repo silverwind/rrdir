@@ -1,6 +1,6 @@
 import {readdir, stat, lstat} from "node:fs/promises";
 import {readdirSync, statSync, lstatSync} from "node:fs";
-import {sep} from "node:path";
+import {sep, resolve} from "node:path";
 import picomatch from "picomatch";
 
 const sepBuffer = Buffer.from(sep);
@@ -36,9 +36,18 @@ function makeMatchers({include, exclude, insensitive}) {
     dot: true,
     flags: insensitive ? "i" : undefined,
   };
+
+  // resolve the path to an absolute one because picomatch can not deal properly
+  // with relative paths that start with ./ or .\
+  // > (await import("picomatch")).default(["**.js"])("./foo.js")
+  // false
   return {
-    includeMatcher: include?.length ? picomatch(include, opts) : null,
-    excludeMatcher: exclude?.length ? picomatch(exclude, opts) : null,
+    includeMatcher: include?.length ? (path => {
+      return picomatch(include, opts)(resolve(path));
+    }) : null,
+    excludeMatcher: exclude?.length ? (path => {
+      return picomatch(exclude, opts)(resolve(path));
+    }) : null,
   };
 }
 
