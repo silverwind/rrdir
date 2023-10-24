@@ -31,9 +31,9 @@ const entries = rrdirSync("dir");
 
 `rrdir` is an async iterator which yields `entry`. `rrdirAsync` and `rrdirSync` return an Array of `entry`.
 
-#### `dir` *String* | *Buffer*
+#### `dir` *String* | *Uint8Array*
 
-The directory to read, either absolute or relative. Pass a `Buffer` to switch the module into `Buffer` mode which is required to be able to read every file, like for example files with names that are invalid UTF-8 sequences.
+The directory to read, either absolute or relative. Pass a `Uint8Array` to switch the module into `Uint8Array` mode which is required to be able to read every file, like for example files with names that are invalid UTF-8 sequences.
 
 #### `options` *Object*
 
@@ -46,7 +46,7 @@ The directory to read, either absolute or relative. Pass a `Buffer` to switch th
 
 #### `entry` *Object*
 
-- `path` *string* | *Buffer*: The path to the entry, will be relative if `dir` is given relative. If `dir` is a `Buffer`, this will be too. Always present.
+- `path` *string* | *Uint8Array*: The path to the entry, will be relative if `dir` is given relative. If `dir` is a `Uint8Array`, this will be too. Always present.
 - `directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
 - `symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. `undefined` on error.
 - `stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error.

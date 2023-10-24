@@ -4,11 +4,16 @@ import {writeFile, mkdir, symlink, rm} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
 import {platform, tmpdir} from "node:os";
 
-const sepBuffer = Buffer.from(sep);
+const encoder = new TextEncoder();
+const toUint8Array = encoder.encode.bind(encoder);
+const decoder = new TextDecoder();
+const toString = decoder.decode.bind(decoder);
+const sepUint8Array = toUint8Array(sep);
+const uint8ArrayContains = (arr, subArr) => arr.toString().includes(subArr.toString());
 
-// this buffer does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
-const weirdBuffer = Buffer.from([0x78, 0xf6, 0x6c, 0x78]);
-const weirdString = String(weirdBuffer);
+// this Uint8Array does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
+const weirdUint8Array = Uint8Array.from([0x78, 0xf6, 0x6c, 0x78]);
+const weirdString = toString(weirdUint8Array);
 
 // node on windows apparently sometimes can not follow symlink directories
 const isWindows = platform() === "win32";
@@ -17,8 +22,12 @@ const skipSymlink = isWindows;
 const skipWeird = platform() === "darwin" || isWindows;
 const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
 
-function joinBuffer(a, b) {
-  return Buffer.from([...Buffer.from(a), ...sepBuffer, ...Buffer.from(b)]);
+function joinUint8Array(a, b) {
+  return Uint8Array.from([
+    ...(a instanceof Uint8Array ? a : toUint8Array(a)),
+    ...sepUint8Array,
+    ...(b instanceof Uint8Array ? b : toUint8Array(b)),
+  ]);
 }
 
 beforeAll(async () => {
@@ -32,7 +41,7 @@ beforeAll(async () => {
   await writeFile(join(testDir, "test/dir2/exclude.txt"), "test");
   await writeFile(join(testDir, "test/dir2/exclude.md"), "test");
   await writeFile(join(testDir, "test/dir2/exclude.css"), "test");
-  if (!skipWeird) await writeFile(joinBuffer(join(testDir, "test"), weirdBuffer), "test");
+  if (!skipWeird) await writeFile(joinUint8Array(join(testDir, "test"), weirdUint8Array), "test");
   await symlink(join(testDir, "test/file"), join(testDir, "test/filesymlink"));
   await symlink(join(testDir, "test/dir"), join(testDir, "test/dirsymlink"));
 });
@@ -44,7 +53,9 @@ afterAll(async () => {
 function sort(entries = []) {
   return entries.sort((a, b) => {
     if (!("path" in a) || !("path" in b)) return 0;
-    return String(a.path).localeCompare(String(b.path));
+    const aString = a.path instanceof Uint8Array ? toString(a.path) : a.path;
+    const bString = b.path instanceof Uint8Array ? toString(b.path) : b.path;
+    return aString.localeCompare(bString);
   });
 }
 
@@ -64,7 +75,7 @@ function makeTest(dir, opts, expected) {
   if (typeof dir === "string") {
     dir = join(testDir, dir);
   } else {
-    dir = joinBuffer(testDir, dir);
+    dir = joinUint8Array(testDir, dir);
   }
   return async () => {
     let iteratorResults = [];
@@ -101,7 +112,7 @@ test("stats", makeTest("test", {stats: true}, result => {
   }
 }));
 
-test("stats buffer", makeTest(Buffer.from("test"), {stats: true}, result => {
+test("stats Uint8Array", makeTest(toUint8Array("test"), {stats: true}, result => {
   for (const {stats} of result) {
     expect(stats).toBeTruthy();
   }
@@ -149,18 +160,18 @@ test("error strict", async () => {
   expect(() => rrdirSync("notfound", {strict: true})).toThrow();
 });
 
-test("buffer", makeTest(Buffer.from("test"), undefined, result => {
+test("Uint8Array", makeTest(toUint8Array("test"), undefined, result => {
   for (const entry of result) {
-    expect(Buffer.isBuffer(entry.path)).toEqual(true);
+    expect(entry.path instanceof Uint8Array).toEqual(true);
   }
 }));
 
 if (!skipWeird) {
   test("weird as string", makeTest("test", {include: ["**/x*"]}, async result => {
-    expect(Buffer.from(result[0].path).includes(weirdBuffer)).toEqual(false);
+    expect(uint8ArrayContains(toUint8Array(result[0].path), weirdUint8Array)).toEqual(false);
   }));
 
-  test("weird as buffer", makeTest(Buffer.from("test"), {include: ["**/x*"]}, async result => {
-    expect(result[0].path.includes(weirdBuffer)).toEqual(true);
+  test("weird as Uint8Array", makeTest(toUint8Array("test"), {include: ["**/x*"]}, async result => {
+    expect(uint8ArrayContains(result[0].path, weirdUint8Array)).toEqual(true);
   }));
 }

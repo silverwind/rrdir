@@ -3,7 +3,11 @@ import {readdirSync, statSync, lstatSync} from "node:fs";
 import {sep, resolve} from "node:path";
 import picomatch from "picomatch";
 
-const sepBuffer = Buffer.from(sep);
+const encoder = new TextEncoder();
+const toUint8Array = encoder.encode.bind(encoder);
+const decoder = new TextDecoder();
+const toString = decoder.decode.bind(decoder);
+const sepUint8Array = toUint8Array(sep);
 
 const defaults = {
   strict: false,
@@ -16,7 +20,7 @@ const defaults = {
 
 function makePath(entry, dir, encoding) {
   if (encoding === "buffer") {
-    return dir === "." ? entry.name : Buffer.from([...dir, ...sepBuffer, ...entry.name]);
+    return dir === "." ? entry.name : Uint8Array.from([...dir, ...sepUint8Array, ...entry.name]);
   } else {
     return dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
   }
@@ -51,7 +55,7 @@ export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, en
     opts = {...defaults, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
-    encoding = Buffer.isBuffer(dir) ? "buffer" : undefined;
+    encoding = dir instanceof Uint8Array ? "buffer" : undefined;
   }
 
   let dirents = [];
@@ -65,10 +69,10 @@ export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, en
 
   for (const dirent of dirents) {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher?.(encoding === "buffer" ? String(path) : path)) continue;
+    if (excludeMatcher?.(encoding === "buffer" ? toString(path) : path)) continue;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-    const encodedPath = encoding === "buffer" ? String(path) : path;
+    const encodedPath = encoding === "buffer" ? toString(path) : path;
     const isIncluded = !includeMatcher || includeMatcher(encodedPath);
     let stats;
 
@@ -102,7 +106,7 @@ export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher
     opts = {...defaults, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
-    encoding = Buffer.isBuffer(dir) ? "buffer" : undefined;
+    encoding = dir instanceof Uint8Array ? "buffer" : undefined;
   }
 
   const results = [];
@@ -117,10 +121,10 @@ export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher
 
   await Promise.all(dirents.map(async dirent => {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher?.(encoding === "buffer" ? String(path) : path)) return;
+    if (excludeMatcher?.(encoding === "buffer" ? toString(path) : path)) return;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-    const encodedPath = encoding === "buffer" ? String(path) : path;
+    const encodedPath = encoding === "buffer" ? toString(path) : path;
     const isIncluded = !includeMatcher || includeMatcher(encodedPath);
     let stats;
 
@@ -156,7 +160,7 @@ export function rrdirSync(dir, opts = {}, {includeMatcher, excludeMatcher, encod
     opts = {...defaults, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
-    encoding = Buffer.isBuffer(dir) ? "buffer" : undefined;
+    encoding = dir instanceof Uint8Array ? "buffer" : undefined;
   }
 
   const results = [];
@@ -171,10 +175,10 @@ export function rrdirSync(dir, opts = {}, {includeMatcher, excludeMatcher, encod
 
   for (const dirent of dirents) {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher?.(encoding === "buffer" ? String(path) : path)) continue;
+    if (excludeMatcher?.(encoding === "buffer" ? toString(path) : path)) continue;
 
     const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-    const encodedPath = encoding === "buffer" ? String(path) : path;
+    const encodedPath = encoding === "buffer" ? toString(path) : path;
     const isIncluded = !includeMatcher || includeMatcher(encodedPath);
     let stats;
 
