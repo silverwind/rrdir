@@ -20,7 +20,7 @@
     "updates": "15.0.3",
     "versions": "12.0.0",
     "vitest": "0.34.6",
-    "vitest-config-silverwind": "3.0.0"
+    "vitest-config-silverwind": "5.0.0"
   },
   "dependencies": {
     "picomatch": "2.3.1"
