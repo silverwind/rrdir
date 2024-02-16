@@ -5,14 +5,14 @@
   "author": "silverwind <me@silverwind.io>",
   "repository": "silverwind/rrdir",
   "license": "BSD-2-Clause",
-  "exports": "./index.js",
+  "exports": "index.js",
   "type": "module",
   "sideEffects": false,
   "engines": {
     "node": ">=18"
   },
   "files": [
-    "./index.js"
+    "index.js"
   ],
   "devDependencies": {
     "eslint": "8.52.0",
