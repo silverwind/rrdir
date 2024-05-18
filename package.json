@@ -5,24 +5,32 @@
   "author": "silverwind <me@silverwind.io>",
   "repository": "silverwind/rrdir",
   "license": "BSD-2-Clause",
-  "exports": "./index.js",
   "type": "module",
   "sideEffects": false,
+  "main": "./dist/index.js",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=18"
   },
-  "files": [
-    "index.js"
-  ],
+  "dependencies": {
+    "picomatch": "^4.0.2"
+  },
   "devDependencies": {
+    "@types/node": "20.12.12",
+    "@types/picomatch": "2.3.3",
     "eslint": "8.57.0",
     "eslint-config-silverwind": "83.0.1",
+    "eslint-config-silverwind-typescript": "3.2.5",
+    "typescript-config-silverwind": "4.2.0",
     "updates": "16.0.1",
     "versions": "12.0.1",
+    "vite": "5.2.11",
+    "vite-plugin-dts": "3.9.1",
     "vitest": "1.5.0",
     "vitest-config-silverwind": "8.0.4"
-  },
-  "dependencies": {
-    "picomatch": "4.0.2"
   }
 }

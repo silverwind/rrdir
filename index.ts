@@ -2,6 +2,8 @@ import {readdir, stat, lstat} from "node:fs/promises";
 import {readdirSync, statSync, lstatSync} from "node:fs";
 import {sep, resolve} from "node:path";
 import picomatch from "picomatch";
+import type {Stats, Dirent} from "node:fs";
+import type {Matcher} from "picomatch";
 
 const encoder = new TextEncoder();
 const toUint8Array = encoder.encode.bind(encoder);
@@ -9,7 +11,41 @@ const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
 const sepUint8Array = toUint8Array(sep);
 
-const defaults = {
+type Encoding = "utf8" | "buffer";
+type Dir = string | Uint8Array;
+type DirNodeCompatible = string | Buffer;
+
+type RRDirOpts = {
+  strict?: boolean,
+  stats?: boolean,
+  followSymlinks?: boolean,
+  include?: string[],
+  exclude?: string[],
+  insensitive?: boolean,
+}
+
+type InternalOpts = {
+  includeMatcher?: Matcher,
+  excludeMatcher?: Matcher,
+  encoding?: Encoding,
+}
+
+type Entry = {
+  /** The path to the entry, will be relative if `dir` is given relative. If `dir` is a `Uint8Array`, this will be too. Always present. */
+  path: Dir,
+  /** Boolean indicating whether the entry is a directory. `undefined` on error. */
+  directory?: boolean,
+  /** Boolean indicating whether the entry is a symbolic link. `undefined` on error. */
+  symlink?: boolean,
+  /** A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error. */
+  stats?: Stats,
+  /** Any error encountered while reading this entry. `undefined` on success. */
+  err?: Error,
+}
+
+const getEncoding = (dir: Dir) => dir instanceof Uint8Array ? "buffer" : "utf8";
+
+const defaultOpts: RRDirOpts = {
   strict: false,
   stats: false,
   followSymlinks: false,
@@ -18,15 +54,15 @@ const defaults = {
   insensitive: false,
 };
 
-function makePath(entry, dir, encoding) {
+function makePath({name}: Dirent, dir: Dir, encoding: Encoding) {
   if (encoding === "buffer") {
-    return dir === "." ? entry.name : Uint8Array.from([...dir, ...sepUint8Array, ...entry.name]);
+    return dir === "." ? name : Uint8Array.from([...dir, ...sepUint8Array, ...name]);
   } else {
-    return dir === "." ? entry.name : `${dir}${sep}${entry.name}`;
+    return dir === "." ? name : `${dir as string}${sep}${name}`;
   }
 }
 
-function build(dirent, path, stats, opts) {
+function build(dirent: Dirent, path: Dir, stats: Stats, opts: RRDirOpts) {
   return {
     path,
     directory: (stats || dirent).isDirectory(),
@@ -35,7 +71,7 @@ function build(dirent, path, stats, opts) {
   };
 }
 
-function makeMatchers({include, exclude, insensitive}) {
+function makeMatchers({include, exclude, insensitive}: RRDirOpts) {
   const opts = {
     dot: true,
     flags: insensitive ? "i" : undefined,
@@ -50,17 +86,18 @@ function makeMatchers({include, exclude, insensitive}) {
   };
 }
 
-export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
+export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): AsyncGenerator<Entry> {
   if (includeMatcher === undefined) {
-    opts = {...defaults, ...opts};
+    opts = {...defaultOpts, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
-    encoding = dir instanceof Uint8Array ? "buffer" : undefined;
+    if (typeof dir === "string" && /[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+    encoding = getEncoding(dir);
   }
 
   let dirents = [];
   try {
-    dirents = await readdir(dir, {encoding, withFileTypes: true});
+    // @ts-ignore -- bug in @types/node
+    dirents = await readdir(dir as DirNodeCompatible, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) throw err;
     yield {path: dir, err};
@@ -79,7 +116,7 @@ export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, en
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
         try {
-          stats = await (opts.followSymlinks ? stat : lstat)(path);
+          stats = await (opts.followSymlinks ? stat : lstat)(path as DirNodeCompatible);
         } catch (err) {
           if (opts.strict) throw err;
           yield {path, err};
@@ -91,27 +128,28 @@ export async function* rrdir(dir, opts = {}, {includeMatcher, excludeMatcher, en
 
     let recurse = false;
     if (isSymbolicLink) {
-      if (!stats) try { stats = await stat(path); } catch {}
+      if (!stats) try { stats = await stat(path as DirNodeCompatible); } catch {}
       if (stats && stats.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
     }
 
-    if (recurse) yield* await rrdir(path, opts, {includeMatcher, excludeMatcher, encoding});
+    if (recurse) yield* rrdir(path, opts, {includeMatcher, excludeMatcher, encoding});
   }
 }
 
-export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
+export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): Promise<Entry[]> {
   if (includeMatcher === undefined) {
-    opts = {...defaults, ...opts};
+    opts = {...defaultOpts, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
-    encoding = dir instanceof Uint8Array ? "buffer" : undefined;
+    if (typeof dir === "string" && /[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+    encoding = getEncoding(dir);
   }
 
   const results = [];
   let dirents = [];
   try {
+    // @ts-ignore -- bug in @types/node
     dirents = await readdir(dir, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) throw err;
@@ -131,7 +169,7 @@ export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
         try {
-          stats = await (opts.followSymlinks ? stat : lstat)(path);
+          stats = await (opts.followSymlinks ? stat : lstat)(path as DirNodeCompatible);
         } catch (err) {
           if (opts.strict) throw err;
           results.push({path, err});
@@ -143,7 +181,7 @@ export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher
 
     let recurse = false;
     if (isSymbolicLink) {
-      if (!stats) try { stats = await stat(path); } catch {}
+      if (!stats) try { stats = await stat(path as DirNodeCompatible); } catch {}
       if (stats && stats.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
@@ -155,18 +193,19 @@ export async function rrdirAsync(dir, opts = {}, {includeMatcher, excludeMatcher
   return results;
 }
 
-export function rrdirSync(dir, opts = {}, {includeMatcher, excludeMatcher, encoding} = {}) {
+export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): Entry[] {
   if (includeMatcher === undefined) {
-    opts = {...defaults, ...opts};
+    opts = {...defaultOpts, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
-    encoding = dir instanceof Uint8Array ? "buffer" : undefined;
+    if (typeof dir === "string" && /[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+    encoding = getEncoding(dir);
   }
 
   const results = [];
   let dirents = [];
   try {
-    dirents = readdirSync(dir, {encoding, withFileTypes: true});
+    // @ts-ignore -- bug in @types/node
+    dirents = readdirSync(dir as DirNodeCompatible, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) throw err;
     results.push({path: dir, err});
@@ -185,7 +224,7 @@ export function rrdirSync(dir, opts = {}, {includeMatcher, excludeMatcher, encod
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
         try {
-          stats = (opts.followSymlinks ? statSync : lstatSync)(path);
+          stats = (opts.followSymlinks ? statSync : lstatSync)(path as DirNodeCompatible);
         } catch (err) {
           if (opts.strict) throw err;
           results.push({path, err});
@@ -196,7 +235,7 @@ export function rrdirSync(dir, opts = {}, {includeMatcher, excludeMatcher, encod
 
     let recurse = false;
     if (isSymbolicLink) {
-      if (!stats) try { stats = statSync(path); } catch {}
+      if (!stats) try { stats = statSync(path as DirNodeCompatible); } catch {}
       if (stats && stats.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;

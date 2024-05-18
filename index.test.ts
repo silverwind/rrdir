@@ -1,4 +1,4 @@
-import {rrdir, rrdirAsync, rrdirSync} from "./index.js";
+import {rrdir, rrdirAsync, rrdirSync} from "./index.ts";
 import {join, sep, relative} from "node:path";
 import {writeFile, mkdir, symlink, rm} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
@@ -22,7 +22,7 @@ const skipSymlink = isWindows;
 const skipWeird = platform() === "darwin" || isWindows;
 const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
 
-function joinUint8Array(a, b) {
+function joinUint8Array(a: Uint8Array | string, b: Uint8Array | string) {
   return Uint8Array.from([
     ...(a instanceof Uint8Array ? a : toUint8Array(a)),
     ...sepUint8Array,
@@ -41,6 +41,7 @@ beforeAll(async () => {
   await writeFile(join(testDir, "test/dir2/exclude.txt"), "test");
   await writeFile(join(testDir, "test/dir2/exclude.md"), "test");
   await writeFile(join(testDir, "test/dir2/exclude.css"), "test");
+  // @ts-ignore - bug in @types/node
   if (!skipWeird) await writeFile(joinUint8Array(join(testDir, "test"), weirdUint8Array), "test");
   await symlink(join(testDir, "test/file"), join(testDir, "test/filesymlink"));
   await symlink(join(testDir, "test/dir"), join(testDir, "test/dirsymlink"));
@@ -51,12 +52,13 @@ afterAll(async () => {
 });
 
 function sort(entries = []) {
-  return entries.sort((a, b) => {
+  entries.sort((a, b) => {
     if (!("path" in a) || !("path" in b)) return 0;
     const aString = a.path instanceof Uint8Array ? toString(a.path) : a.path;
     const bString = b.path instanceof Uint8Array ? toString(b.path) : b.path;
     return aString.localeCompare(bString);
   });
+  return entries;
 }
 
 function normalize(results) {
@@ -71,7 +73,7 @@ function normalize(results) {
   return ret;
 }
 
-function makeTest(dir, opts, expected) {
+function makeTest(dir, opts?, expected?) {
   if (typeof dir === "string") {
     dir = join(testDir, dir);
   } else {
@@ -167,11 +169,11 @@ test("Uint8Array", makeTest(toUint8Array("test"), undefined, result => {
 }));
 
 if (!skipWeird) {
-  test("weird as string", makeTest("test", {include: ["**/x*"]}, async result => {
+  test("weird as string", makeTest("test", {include: ["**/x*"]}, result => {
     expect(uint8ArrayContains(toUint8Array(result[0].path), weirdUint8Array)).toEqual(false);
   }));
 
-  test("weird as Uint8Array", makeTest(toUint8Array("test"), {include: ["**/x*"]}, async result => {
+  test("weird as Uint8Array", makeTest(toUint8Array("test"), {include: ["**/x*"]}, result => {
     expect(uint8ArrayContains(result[0].path, weirdUint8Array)).toEqual(true);
   }));
 }
