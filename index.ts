@@ -81,8 +81,8 @@ function makeMatchers({include, exclude, insensitive}: RRDirOpts) {
   // with relative paths that start with ./ or .\
   // https://github.com/micromatch/picomatch/issues/121
   return {
-    includeMatcher: include?.length ? path => picomatch(include, opts)(resolve(path)) : null,
-    excludeMatcher: exclude?.length ? path => picomatch(exclude, opts)(resolve(path)) : null,
+    includeMatcher: include?.length ? (path: string) => picomatch(include, opts)(resolve(path)) : null,
+    excludeMatcher: exclude?.length ? (path: string) => picomatch(exclude, opts)(resolve(path)) : null,
   };
 }
 
@@ -94,7 +94,7 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
     encoding = getEncoding(dir);
   }
 
-  let dirents = [];
+  let dirents: Dirent[] = [];
   try {
     // @ts-ignore -- bug in @types/node
     dirents = await readdir(dir as DirNodeCompatible, {encoding, withFileTypes: true});
@@ -108,10 +108,10 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
     const path = makePath(dirent, dir, encoding);
     if (excludeMatcher?.(encoding === "buffer" ? toString(path) : path)) continue;
 
-    const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-    const encodedPath = encoding === "buffer" ? toString(path) : path;
-    const isIncluded = !includeMatcher || includeMatcher(encodedPath);
-    let stats;
+    const isSymbolicLink: boolean = opts.followSymlinks && dirent.isSymbolicLink();
+    const encodedPath: string = encoding === "buffer" ? toString(path) : path;
+    const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
+    let stats: Stats;
 
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
@@ -146,8 +146,8 @@ export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher
     encoding = getEncoding(dir);
   }
 
-  const results = [];
-  let dirents = [];
+  const results: Entry[] = [];
+  let dirents: Dirent[] = [];
   try {
     // @ts-ignore -- bug in @types/node
     dirents = await readdir(dir, {encoding, withFileTypes: true});
@@ -161,10 +161,10 @@ export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher
     const path = makePath(dirent, dir, encoding);
     if (excludeMatcher?.(encoding === "buffer" ? toString(path) : path)) return;
 
-    const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-    const encodedPath = encoding === "buffer" ? toString(path) : path;
-    const isIncluded = !includeMatcher || includeMatcher(encodedPath);
-    let stats;
+    const isSymbolicLink: boolean = opts.followSymlinks && dirent.isSymbolicLink();
+    const encodedPath: string = encoding === "buffer" ? toString(path) : path;
+    const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
+    let stats: Stats;
 
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
@@ -201,8 +201,8 @@ export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, exclu
     encoding = getEncoding(dir);
   }
 
-  const results = [];
-  let dirents = [];
+  const results: Entry[] = [];
+  let dirents: Dirent[] = [];
   try {
     // @ts-ignore -- bug in @types/node
     dirents = readdirSync(dir as DirNodeCompatible, {encoding, withFileTypes: true});
@@ -216,10 +216,10 @@ export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, exclu
     const path = makePath(dirent, dir, encoding);
     if (excludeMatcher?.(encoding === "buffer" ? toString(path) : path)) continue;
 
-    const isSymbolicLink = opts.followSymlinks && dirent.isSymbolicLink();
-    const encodedPath = encoding === "buffer" ? toString(path) : path;
-    const isIncluded = !includeMatcher || includeMatcher(encodedPath);
-    let stats;
+    const isSymbolicLink: boolean = opts.followSymlinks && dirent.isSymbolicLink();
+    const encodedPath: string = encoding === "buffer" ? toString(path) : path;
+    const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
+    let stats: Stats;
 
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
