@@ -29,7 +29,7 @@
     "updates": "16.0.1",
     "versions": "12.0.1",
     "vite": "5.2.11",
-    "vite-config-silverwind": "1.1.0",
+    "vite-config-silverwind": "2.0.3",
     "vitest": "1.5.0",
     "vitest-config-silverwind": "8.0.4"
   }
