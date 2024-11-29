@@ -11,11 +11,11 @@ const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
 const sepUint8Array = toUint8Array(sep);
 
-type Encoding = "utf8" | "buffer";
-type Dir = string | Uint8Array;
-type DirNodeCompatible = string | Buffer;
+export type Encoding = "utf8" | "buffer";
+export type Dir = string | Uint8Array;
+export type DirNodeCompatible = string | Buffer;
 
-type RRDirOpts = {
+export type RRDirOpts = {
   strict?: boolean,
   stats?: boolean,
   followSymlinks?: boolean,
@@ -30,7 +30,7 @@ type InternalOpts = {
   encoding?: Encoding,
 }
 
-type Entry = {
+export type Entry = {
   /** The path to the entry, will be relative if `dir` is given relative. If `dir` is a `Uint8Array`, this will be too. Always present. */
   path: Dir,
   /** Boolean indicating whether the entry is a directory. `undefined` on error. */
