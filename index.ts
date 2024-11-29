@@ -96,7 +96,7 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
 
   let dirents: Dirent[] = [];
   try {
-    // @ts-ignore -- bug in @types/node
+    // @ts-expect-error -- bug in @types/node
     dirents = await readdir(dir as DirNodeCompatible, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) throw err;
@@ -149,7 +149,7 @@ export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher
   const results: Entry[] = [];
   let dirents: Dirent[] = [];
   try {
-    // @ts-ignore -- bug in @types/node
+    // @ts-expect-error -- bug in @types/node
     dirents = await readdir(dir, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) throw err;
@@ -204,7 +204,7 @@ export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, exclu
   const results: Entry[] = [];
   let dirents: Dirent[] = [];
   try {
-    // @ts-ignore -- bug in @types/node
+    // @ts-expect-error -- bug in @types/node
     dirents = readdirSync(dir as DirNodeCompatible, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) throw err;
