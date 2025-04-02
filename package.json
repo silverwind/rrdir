@@ -24,7 +24,6 @@
     "@types/picomatch": "3.0.2",
     "eslint": "8.57.0",
     "eslint-config-silverwind": "99.0.0",
-    "eslint-config-silverwind-typescript": "9.2.2",
     "typescript-config-silverwind": "7.0.0",
     "updates": "16.4.2",
     "versions": "12.1.3",
