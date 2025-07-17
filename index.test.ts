@@ -170,7 +170,7 @@ test("Uint8Array", makeTest(toUint8Array("test"), undefined, (results: Entry[]) 
 
 if (!skipWeird) {
   test("weird as string", makeTest("test", {include: ["**/x*"]}, (results: Entry[]) => {
-    expect(uint8ArrayContains(toUint8Array(results[0].path), weirdUint8Array)).toEqual(false);
+    expect(uint8ArrayContains(toUint8Array(results[0].path as string), weirdUint8Array)).toEqual(false);
   }));
 
   test("weird as Uint8Array", makeTest(toUint8Array("test"), {include: ["**/x*"]}, (results: Entry[]) => {

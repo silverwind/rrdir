@@ -83,6 +83,9 @@ function makeMatchers({include, exclude, insensitive}: RRDirOpts) {
   return {
     includeMatcher: include?.length ? (path: string) => picomatch(include, opts)(resolve(path)) : null,
     excludeMatcher: exclude?.length ? (path: string) => picomatch(exclude, opts)(resolve(path)) : null,
+  } as {
+    includeMatcher: Matcher,
+    excludeMatcher: Matcher,
   };
 }
 
@@ -106,10 +109,10 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
 
   for (const dirent of dirents) {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher?.(encoding === "buffer" ? toString(path) : path)) continue;
+    if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : (path as string))) continue;
 
     const isSymbolicLink: boolean = opts.followSymlinks && dirent.isSymbolicLink();
-    const encodedPath: string = encoding === "buffer" ? toString(path) : path;
+    const encodedPath: string = encoding === "buffer" ? toString(path as Buffer) : path as string;
     const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
     let stats: Stats;
 
@@ -159,10 +162,10 @@ export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher
 
   await Promise.all(dirents.map(async dirent => {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher?.(encoding === "buffer" ? toString(path) : path)) return;
+    if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : path as string)) return;
 
     const isSymbolicLink: boolean = opts.followSymlinks && dirent.isSymbolicLink();
-    const encodedPath: string = encoding === "buffer" ? toString(path) : path;
+    const encodedPath: string = encoding === "buffer" ? toString(path as Buffer) : path as string;
     const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
     let stats: Stats;
 
@@ -214,10 +217,10 @@ export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, exclu
 
   for (const dirent of dirents) {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher?.(encoding === "buffer" ? toString(path) : path)) continue;
+    if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : path as string)) continue;
 
     const isSymbolicLink: boolean = opts.followSymlinks && dirent.isSymbolicLink();
-    const encodedPath: string = encoding === "buffer" ? toString(path) : path;
+    const encodedPath: string = encoding === "buffer" ? toString(path as Buffer) : path as string;
     const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
     let stats: Stats;
 
