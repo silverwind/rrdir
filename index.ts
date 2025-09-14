@@ -22,13 +22,13 @@ export type RRDirOpts = {
   include?: string[],
   exclude?: string[],
   insensitive?: boolean,
-}
+};
 
 type InternalOpts = {
   includeMatcher?: Matcher,
   excludeMatcher?: Matcher,
   encoding?: Encoding,
-}
+};
 
 export type Entry = {
   /** The path to the entry, will be relative if `dir` is given relative. If `dir` is a `Uint8Array`, this will be too. Always present. */
@@ -41,7 +41,7 @@ export type Entry = {
   stats?: Stats,
   /** Any error encountered while reading this entry. `undefined` on success. */
   err?: Error,
-}
+};
 
 const getEncoding = (dir: Dir) => dir instanceof Uint8Array ? "buffer" : "utf8";
 
