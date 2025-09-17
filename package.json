@@ -1,6 +1,6 @@
 {
   "name": "rrdir",
-  "version": "13.2.2",
+  "version": "14.0.0",
   "description": "Recursive directory reader with a delightful API",
   "author": "silverwind <me@silverwind.io>",
   "repository": "silverwind/rrdir",
