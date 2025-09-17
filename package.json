@@ -14,10 +14,10 @@
     "dist"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
-    "picomatch": "^4.0.3"
+    "picomatch": "4.0.3"
   },
   "devDependencies": {
     "@types/node": "24.3.3",
