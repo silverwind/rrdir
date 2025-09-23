@@ -20,15 +20,15 @@
     "picomatch": "4.0.3"
   },
   "devDependencies": {
-    "@types/node": "24.3.3",
+    "@types/node": "24.5.2",
     "@types/picomatch": "4.0.2",
-    "eslint": "9.35.0",
-    "eslint-config-silverwind": "103.0.1",
+    "eslint": "9.36.0",
+    "eslint-config-silverwind": "105.1.0",
     "typescript-config-silverwind": "10.0.1",
     "updates": "16.7.2",
-    "versions": "13.1.1",
-    "vite": "7.1.5",
-    "vite-config-silverwind": "5.4.0",
+    "versions": "13.1.2",
+    "vite": "7.1.7",
+    "vite-config-silverwind": "6.0.2",
     "vitest": "3.2.4",
     "vitest-config-silverwind": "10.2.0"
   }
