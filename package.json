@@ -20,14 +20,14 @@
     "picomatch": "4.0.3"
   },
   "devDependencies": {
-    "@types/node": "24.6.0",
+    "@types/node": "24.7.0",
     "@types/picomatch": "4.0.2",
-    "eslint": "9.36.0",
-    "eslint-config-silverwind": "105.2.2",
+    "eslint": "9.37.0",
+    "eslint-config-silverwind": "105.2.3",
     "tsdown": "0.15.6",
     "tsdown-config-silverwind": "1.4.0",
     "typescript-config-silverwind": "11.0.0",
-    "updates": "16.7.4",
+    "updates": "16.8.0",
     "versions": "13.2.1",
     "vitest": "3.2.4",
     "vitest-config-silverwind": "10.2.0"
