@@ -29,8 +29,8 @@ test-update: node_modules
 .PHONY: build
 build: node_modules $(DIST_FILES)
 
-$(DIST_FILES): $(SOURCE_FILES) package-lock.json vite.config.ts
-	npx vite build
+$(DIST_FILES): $(SOURCE_FILES) package-lock.json package.json tsdown.config.ts
+	npx tsdown
 
 .PHONY: publish
 publish: node_modules
