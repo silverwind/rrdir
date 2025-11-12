@@ -3,6 +3,7 @@ import {join, sep, relative} from "node:path";
 import {writeFile, mkdir, symlink, rm} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
 import {platform, tmpdir} from "node:os";
+import type {TestContext} from "vitest";
 
 const encoder = new TextEncoder();
 const toUint8Array = encoder.encode.bind(encoder);
@@ -17,7 +18,6 @@ const weirdString = toString(weirdUint8Array);
 
 // node on windows apparently sometimes can not follow symlink directories
 const isWindows = platform() === "win32";
-const skipSymlink = isWindows;
 
 const skipWeird = platform() === "darwin" || isWindows;
 const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
@@ -73,84 +73,80 @@ function normalize(results: Entry[]) {
   return ret;
 }
 
-function makeTest(dir: string | Uint8Array, opts?: RRDirOpts, expected?: any) {
+async function makeTest(dir: string | Uint8Array, context: TestContext, opts?: RRDirOpts, expected?: any, skip?: boolean) {
+  if (isWindows && opts?.followSymlinks) context.skip();
+  if (skip) context.skip();
+
   if (typeof dir === "string") {
     dir = join(testDir, dir);
   } else {
     dir = joinUint8Array(testDir, dir);
   }
-  return async () => {
-    let iteratorResults = [];
-    for await (const result of rrdir(dir, opts)) iteratorResults.push(result);
-    let asyncResults = await rrdirAsync(dir, opts);
-    let syncResults = rrdirSync(dir, opts);
 
-    if (typeof expected === "function") {
-      expected(iteratorResults);
-      expected(asyncResults);
-      expected(syncResults);
-    } else {
-      iteratorResults = normalize(iteratorResults);
-      asyncResults = normalize(asyncResults);
-      syncResults = normalize(syncResults);
-      expect(iteratorResults).toMatchSnapshot();
-      expect(syncResults).toEqual(iteratorResults);
-      expect(asyncResults).toEqual(iteratorResults);
-    }
-  };
+  let iteratorResults: Array<Entry> = [];
+  for await (const result of rrdir(dir, opts)) iteratorResults.push(result);
+  let asyncResults = await rrdirAsync(dir, opts);
+  let syncResults = rrdirSync(dir, opts);
+
+  if (typeof expected === "function") {
+    expected(iteratorResults);
+    expected(asyncResults);
+    expected(syncResults);
+  } else {
+    iteratorResults = normalize(iteratorResults);
+    asyncResults = normalize(asyncResults);
+    syncResults = normalize(syncResults);
+    expect(iteratorResults).toMatchSnapshot();
+    expect(syncResults).toEqual(iteratorResults);
+    expect(asyncResults).toEqual(iteratorResults);
+  }
 }
 
-test("basic", makeTest("test"));
-test("basic slash", makeTest("test/"));
+test("basic", context => makeTest("test", context));
+test("basic slash", context => makeTest("test/", context));
+test("followSymlinks", context => makeTest("test", context, {followSymlinks: true}));
 
-if (!skipSymlink) {
-  test("followSymlinks", makeTest("test", {followSymlinks: true}));
-}
-
-test("stats", makeTest("test", {stats: true}, (results: Entry[]) => {
+test("stats", context => makeTest("test", context, {stats: true}, (results: Entry[]) => {
   for (const {path, stats} of results) {
     if ((path as string)?.includes?.(weirdString)) continue;
     expect(stats).toBeTruthy();
   }
 }));
 
-test("stats Uint8Array", makeTest(toUint8Array("test"), {stats: true}, (results: Entry[]) => {
+test("stats Uint8Array", context => makeTest(toUint8Array("test"), context, {stats: true}, (results: Entry[]) => {
   for (const {stats} of results) {
     expect(stats).toBeTruthy();
   }
 }));
 
-test("nostats", makeTest("test", {stats: false}, (results: Entry[]) => {
+test("nostats", context => makeTest("test", context, {stats: false}, (results: Entry[]) => {
   for (const entry of results) expect(entry.stats).toEqual(undefined);
 }));
 
-test("exclude", makeTest("test", {exclude: ["**/dir"]}));
-test("exclude 2", makeTest("test", {exclude: ["**/dir2"]}));
-test("exclude 3", makeTest("test", {exclude: ["**/dir*"]}));
-test("exclude 4", makeTest("test", {exclude: ["**/dir", "**/dir2"]}));
-test("exclude 5", makeTest("test", {exclude: ["**"]}, []));
-test("exclude 6", makeTest("test", {exclude: ["**.txt"]}, []));
-test("exclude 7", makeTest("test", {exclude: ["**.txt", "**.md"]}, []));
+test("exclude", context => makeTest("test", context, {exclude: ["**/dir"]}));
+test("exclude 2", context => makeTest("test", context, {exclude: ["**/dir2"]}));
+test("exclude 3", context => makeTest("test", context, {exclude: ["**/dir*"]}));
+test("exclude 4", context => makeTest("test", context, {exclude: ["**/dir", "**/dir2"]}));
+test("exclude 5", context => makeTest("test", context, {exclude: ["**"]}, []));
+test("exclude 6", context => makeTest("test", context, {exclude: ["**.txt"]}, []));
+test("exclude 7", context => makeTest("test", context, {exclude: ["**.txt", "**.md"]}, []));
 
-test("exclude stats", makeTest("test", {exclude: ["**/dir", "**/dir2"], stats: true}, (results: Entry[]) => {
+test("exclude stats", context => makeTest("test", context, {exclude: ["**/dir", "**/dir2"], stats: true}, (results: Entry[]) => {
   const file = results.find(entry => entry.path === join(testDir, "test/file"));
   expect(file?.stats?.isFile()).toEqual(true);
 }));
 
 // does not work on windows, likely a picomatch bug
-if (!isWindows) {
-  test("include", makeTest("test", {include: [join(testDir, "**/f*")]}));
-}
+test("include", context => makeTest("test", context, {include: [join(testDir, "**/f*")]}, undefined, isWindows));
+test("include 2", context => makeTest("test", context, {include: ["**"]}));
+test("include 3", context => makeTest("test", context, {include: ["**/dir2/**"]}));
+test("include 4", context => makeTest("test", context, {include: ["**/dir/"]}));
+test("include 5", context => makeTest("test", context, {include: ["**/dir"]}));
+test("include 6", context => makeTest("test", context, {include: ["**.txt"]}, []));
+test("insensitive", context => makeTest("test", context, {include: ["**/u*"], insensitive: true}));
+test("exclude include", context => makeTest("test", context, {exclude: ["**/dir2"], include: ["**/file"]}));
 
-test("include 2", makeTest("test", {include: ["**"]}));
-test("include 3", makeTest("test", {include: ["**/dir2/**"]}));
-test("include 4", makeTest("test", {include: ["**/dir/"]}));
-test("include 5", makeTest("test", {include: ["**/dir"]}));
-test("include 6", makeTest("test", {include: ["**.txt"]}, []));
-test("insensitive", makeTest("test", {include: ["**/u*"], insensitive: true}));
-test("exclude include", makeTest("test", {exclude: ["**/dir2"], include: ["**/file"]}));
-
-test("error", makeTest("notfound", undefined, (results: Entry[]) => {
+test("error", context => makeTest("notfound", context, undefined, (results: Entry[]) => {
   expect(results.length).toEqual(1);
   expect(results[0].path).toMatch(/notfound$/);
   expect(results[0].err).toBeTruthy();
@@ -162,18 +158,18 @@ test("error strict", async () => {
   expect(() => rrdirSync("notfound", {strict: true})).toThrow();
 });
 
-test("Uint8Array", makeTest(toUint8Array("test"), undefined, (results: Entry[]) => {
+test("Uint8Array", context => makeTest(toUint8Array("test"), context, undefined, (results: Entry[]) => {
   for (const entry of results) {
     expect(entry.path instanceof Uint8Array).toEqual(true);
   }
 }));
 
 if (!skipWeird) {
-  test("weird as string", makeTest("test", {include: ["**/x*"]}, (results: Entry[]) => {
+  test("weird as string", context => makeTest("test", context, {include: ["**/x*"]}, (results: Entry[]) => {
     expect(uint8ArrayContains(toUint8Array(results[0].path as string), weirdUint8Array)).toEqual(false);
   }));
 
-  test("weird as Uint8Array", makeTest(toUint8Array("test"), {include: ["**/x*"]}, (results: Entry[]) => {
+  test("weird as Uint8Array", context => makeTest(toUint8Array("test"), context, {include: ["**/x*"]}, (results: Entry[]) => {
     expect(uint8ArrayContains(results[0].path as Uint8Array, weirdUint8Array)).toEqual(true);
   }));
 }
