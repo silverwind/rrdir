@@ -54,7 +54,7 @@ const defaultOpts: RRDirOpts = {
   insensitive: false,
 };
 
-function makePath({name}: Dirent, dir: Dir, encoding: Encoding) {
+function makePath({name}: Dirent, dir: Dir, encoding: Encoding | undefined) {
   if (encoding === "buffer") {
     return dir === "." ? name : Uint8Array.from([...dir, ...sepUint8Array, ...name]);
   } else {
@@ -62,7 +62,7 @@ function makePath({name}: Dirent, dir: Dir, encoding: Encoding) {
   }
 }
 
-function build(dirent: Dirent, path: Dir, stats: Stats, opts: RRDirOpts) {
+function build(dirent: Dirent, path: Dir, stats: Stats | undefined, opts: RRDirOpts) {
   return {
     path,
     directory: (stats || dirent).isDirectory(),
@@ -111,10 +111,10 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
     const path = makePath(dirent, dir, encoding);
     if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : (path as string))) continue;
 
-    const isSymbolicLink: boolean = opts.followSymlinks && dirent.isSymbolicLink();
+    const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
     const encodedPath: string = encoding === "buffer" ? toString(path as Buffer) : path as string;
     const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
-    let stats: Stats;
+    let stats: Stats | undefined;
 
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
@@ -132,7 +132,7 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
     let recurse = false;
     if (isSymbolicLink) {
       if (!stats) try { stats = await stat(path as DirNodeCompatible); } catch {}
-      if (stats && stats.isDirectory()) recurse = true;
+      if (stats?.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
     }
@@ -164,10 +164,10 @@ export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher
     const path = makePath(dirent, dir, encoding);
     if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : path as string)) return;
 
-    const isSymbolicLink: boolean = opts.followSymlinks && dirent.isSymbolicLink();
+    const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
     const encodedPath: string = encoding === "buffer" ? toString(path as Buffer) : path as string;
     const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
-    let stats: Stats;
+    let stats: Stats | undefined;
 
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
@@ -185,7 +185,7 @@ export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher
     let recurse = false;
     if (isSymbolicLink) {
       if (!stats) try { stats = await stat(path as DirNodeCompatible); } catch {}
-      if (stats && stats.isDirectory()) recurse = true;
+      if (stats?.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
     }
@@ -219,10 +219,10 @@ export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, exclu
     const path = makePath(dirent, dir, encoding);
     if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : path as string)) continue;
 
-    const isSymbolicLink: boolean = opts.followSymlinks && dirent.isSymbolicLink();
+    const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
     const encodedPath: string = encoding === "buffer" ? toString(path as Buffer) : path as string;
     const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
-    let stats: Stats;
+    let stats: Stats | undefined;
 
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
@@ -239,7 +239,7 @@ export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, exclu
     let recurse = false;
     if (isSymbolicLink) {
       if (!stats) try { stats = statSync(path as DirNodeCompatible); } catch {}
-      if (stats && stats.isDirectory()) recurse = true;
+      if (stats?.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
     }

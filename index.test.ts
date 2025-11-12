@@ -134,7 +134,7 @@ test("exclude 7", makeTest("test", {exclude: ["**.txt", "**.md"]}, []));
 
 test("exclude stats", makeTest("test", {exclude: ["**/dir", "**/dir2"], stats: true}, (results: Entry[]) => {
   const file = results.find(entry => entry.path === join(testDir, "test/file"));
-  expect(file.stats.isFile()).toEqual(true);
+  expect(file?.stats?.isFile()).toEqual(true);
 }));
 
 // does not work on windows, likely a picomatch bug
