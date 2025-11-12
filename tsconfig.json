@@ -1,8 +1,6 @@
 {
   "extends": "typescript-config-silverwind",
   "compilerOptions": {
-    "strictNullChecks": true,
-    "noImplicitAny": true,
     "types": [
       "jest-extended",
       "vitest/globals",
