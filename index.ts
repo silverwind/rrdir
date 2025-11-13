@@ -12,8 +12,7 @@ const toString = decoder.decode.bind(decoder);
 const sepUint8Array = toUint8Array(sep);
 
 export type Encoding = "utf8" | "buffer";
-export type Dir = string | Uint8Array;
-export type DirNodeCompatible = string | Buffer;
+export type Dir = string | Buffer;
 
 export type RRDirOpts = {
   strict?: boolean,
@@ -30,9 +29,9 @@ type InternalOpts = {
   encoding?: Encoding,
 };
 
-export type Entry = {
+export type Entry<T = Dir> = {
   /** The path to the entry, will be relative if `dir` is given relative. If `dir` is a `Uint8Array`, this will be too. Always present. */
-  path: Dir,
+  path: T,
   /** Boolean indicating whether the entry is a directory. `undefined` on error. */
   directory?: boolean,
   /** Boolean indicating whether the entry is a symbolic link. `undefined` on error. */
@@ -54,15 +53,15 @@ const defaultOpts: RRDirOpts = {
   insensitive: false,
 };
 
-function makePath({name}: Dirent, dir: Dir, encoding: Encoding | undefined) {
+function makePath<T extends Dir>({name}: Dirent<T>, dir: T, encoding: Encoding | undefined): T {
   if (encoding === "buffer") {
-    return dir === "." ? name : Uint8Array.from([...dir, ...sepUint8Array, ...name]);
+    return dir === "." ? name : Uint8Array.from([...dir, ...sepUint8Array, ...name]) as T;
   } else {
-    return dir === "." ? name : `${dir as string}${sep}${name}`;
+    return dir === "." ? name : `${dir as string}${sep}${name}` as T;
   }
 }
 
-function build(dirent: Dirent, path: Dir, stats: Stats | undefined, opts: RRDirOpts) {
+function build<T extends Dir>(dirent: Dirent<T>, path: T, stats: Stats | undefined, opts: RRDirOpts) {
   return {
     path,
     directory: (stats || dirent).isDirectory(),
@@ -89,18 +88,20 @@ function makeMatchers({include, exclude, insensitive}: RRDirOpts) {
   };
 }
 
-export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): AsyncGenerator<Entry> {
+export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): AsyncGenerator<Entry<T>> {
   if (includeMatcher === undefined) {
     opts = {...defaultOpts, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (typeof dir === "string" && /[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+    if (typeof dir === "string" && /[/\\]$/.test(dir)) {
+      dir = dir.substring(0, dir.length - 1) as T;
+    }
     encoding = getEncoding(dir);
   }
 
-  let dirents: Dirent[] = [];
+  let dirents: Dirent<T>[] = [];
   try {
     // @ts-expect-error -- bug in @types/node
-    dirents = await readdir(dir as DirNodeCompatible, {encoding, withFileTypes: true});
+    dirents = await readdir(dir, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) throw err;
     yield {path: dir, err};
@@ -108,7 +109,7 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
   if (!dirents.length) return;
 
   for (const dirent of dirents) {
-    const path = makePath(dirent, dir, encoding);
+    const path = makePath<T>(dirent, dir, encoding);
     if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : (path as string))) continue;
 
     const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
@@ -119,7 +120,7 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
         try {
-          stats = await (opts.followSymlinks ? stat : lstat)(path as DirNodeCompatible);
+          stats = await (opts.followSymlinks ? stat : lstat)(path);
         } catch (err) {
           if (opts.strict) throw err;
           yield {path, err};
@@ -131,7 +132,7 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
 
     let recurse = false;
     if (isSymbolicLink) {
-      if (!stats) try { stats = await stat(path as DirNodeCompatible); } catch {}
+      if (!stats) try { stats = await stat(path); } catch {}
       if (stats?.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
@@ -141,16 +142,18 @@ export async function* rrdir(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, ex
   }
 }
 
-export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): Promise<Entry[]> {
+export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): Promise<Array<Entry<T>>> {
   if (includeMatcher === undefined) {
     opts = {...defaultOpts, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (typeof dir === "string" && /[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+    if (typeof dir === "string" && /[/\\]$/.test(dir)) {
+      dir = dir.substring(0, dir.length - 1) as T;
+    }
     encoding = getEncoding(dir);
   }
 
-  const results: Entry[] = [];
-  let dirents: Dirent[] = [];
+  const results: Array<Entry<T>> = [];
+  let dirents: Array<Dirent<T>> = [];
   try {
     // @ts-expect-error -- bug in @types/node
     dirents = await readdir(dir, {encoding, withFileTypes: true});
@@ -172,7 +175,7 @@ export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
         try {
-          stats = await (opts.followSymlinks ? stat : lstat)(path as DirNodeCompatible);
+          stats = await (opts.followSymlinks ? stat : lstat)(path);
         } catch (err) {
           if (opts.strict) throw err;
           results.push({path, err});
@@ -184,7 +187,7 @@ export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher
 
     let recurse = false;
     if (isSymbolicLink) {
-      if (!stats) try { stats = await stat(path as DirNodeCompatible); } catch {}
+      if (!stats) try { stats = await stat(path); } catch {}
       if (stats?.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;
@@ -196,19 +199,21 @@ export async function rrdirAsync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher
   return results;
 }
 
-export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): Entry[] {
+export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): Array<Entry<T>> {
   if (includeMatcher === undefined) {
     opts = {...defaultOpts, ...opts};
     ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (typeof dir === "string" && /[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1);
+    if (typeof dir === "string" && /[/\\]$/.test(dir)) {
+      dir = dir.substring(0, dir.length - 1) as T;
+    }
     encoding = getEncoding(dir);
   }
 
-  const results: Entry[] = [];
-  let dirents: Dirent[] = [];
+  const results: Array<Entry<T>> = [];
+  let dirents: Array<Dirent<T>> = [];
   try {
     // @ts-expect-error -- bug in @types/node
-    dirents = readdirSync(dir as DirNodeCompatible, {encoding, withFileTypes: true});
+    dirents = readdirSync(dir, {encoding, withFileTypes: true});
   } catch (err) {
     if (opts.strict) throw err;
     results.push({path: dir, err});
@@ -227,7 +232,7 @@ export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, exclu
     if (isIncluded) {
       if (opts.stats || isSymbolicLink) {
         try {
-          stats = (opts.followSymlinks ? statSync : lstatSync)(path as DirNodeCompatible);
+          stats = (opts.followSymlinks ? statSync : lstatSync)(path);
         } catch (err) {
           if (opts.strict) throw err;
           results.push({path, err});
@@ -238,7 +243,7 @@ export function rrdirSync(dir: Dir, opts: RRDirOpts = {}, {includeMatcher, exclu
 
     let recurse = false;
     if (isSymbolicLink) {
-      if (!stats) try { stats = statSync(path as DirNodeCompatible); } catch {}
+      if (!stats) try { stats = statSync(path); } catch {}
       if (stats?.isDirectory()) recurse = true;
     } else if (dirent.isDirectory()) {
       recurse = true;

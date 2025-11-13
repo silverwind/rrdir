@@ -1,4 +1,4 @@
-import {rrdir, rrdirAsync, rrdirSync, type Entry, type RRDirOpts} from "./index.ts";
+import {rrdir, rrdirAsync, rrdirSync, type Entry, type RRDirOpts, type Dir} from "./index.ts";
 import {join, sep, relative} from "node:path";
 import {writeFile, mkdir, symlink, rm} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
@@ -51,7 +51,7 @@ afterAll(async () => {
   await rm(testDir, {recursive: true});
 });
 
-function sort(entries: Entry[] = []) {
+function sort<T extends Array<Entry>>(entries: T): T {
   entries.sort((a, b) => {
     if (!("path" in a) || !("path" in b)) return 0;
     const aString = a.path instanceof Uint8Array ? toString(a.path) : a.path;
@@ -61,9 +61,9 @@ function sort(entries: Entry[] = []) {
   return entries;
 }
 
-function normalize(results: Entry[]) {
-  const ret = [];
-  for (const item of sort(results)) {
+function normalize<T extends Array<Entry>>(entries: T): T {
+  const ret: T = [] as any;
+  for (const item of sort(entries)) {
     if (typeof item?.path === "string") {
       item.path = relative(testDir, item.path).replaceAll("\\", "/");
     }
@@ -73,14 +73,14 @@ function normalize(results: Entry[]) {
   return ret;
 }
 
-async function makeTest(dir: string | Uint8Array, context: TestContext, opts?: RRDirOpts, expected?: any, skip?: boolean) {
+async function makeTest<T extends Dir>(dir: T, context: TestContext, opts?: RRDirOpts, expected?: any, skip?: boolean) {
   if (isWindows && opts?.followSymlinks) context.skip();
   if (skip) context.skip();
 
   if (typeof dir === "string") {
-    dir = join(testDir, dir);
+    dir = join(testDir, dir) as T;
   } else {
-    dir = joinUint8Array(testDir, dir);
+    dir = joinUint8Array(testDir, dir) as T;
   }
 
   let iteratorResults: Array<Entry> = [];
@@ -113,7 +113,7 @@ test("stats", context => makeTest("test", context, {stats: true}, (results: Entr
   }
 }));
 
-test("stats Uint8Array", context => makeTest(toUint8Array("test"), context, {stats: true}, (results: Entry[]) => {
+test("stats Uint8Array", context => makeTest(toUint8Array("test") as any, context, {stats: true}, (results: Entry[]) => {
   for (const {stats} of results) {
     expect(stats).toBeTruthy();
   }
@@ -158,7 +158,7 @@ test("error strict", async () => {
   expect(() => rrdirSync("notfound", {strict: true})).toThrow();
 });
 
-test("Uint8Array", context => makeTest(toUint8Array("test"), context, undefined, (results: Entry[]) => {
+test("Uint8Array", context => makeTest(toUint8Array("test") as any, context, undefined, (results: Entry[]) => {
   for (const entry of results) {
     expect(entry.path instanceof Uint8Array).toEqual(true);
   }
@@ -169,7 +169,7 @@ if (!skipWeird) {
     expect(uint8ArrayContains(toUint8Array(results[0].path as string), weirdUint8Array)).toEqual(false);
   }));
 
-  test("weird as Uint8Array", context => makeTest(toUint8Array("test"), context, {include: ["**/x*"]}, (results: Entry[]) => {
+  test("weird as Uint8Array", context => makeTest(toUint8Array("test") as any, context, {include: ["**/x*"]}, (results: Entry[]) => {
     expect(uint8ArrayContains(results[0].path as Uint8Array, weirdUint8Array)).toEqual(true);
   }));
 }
