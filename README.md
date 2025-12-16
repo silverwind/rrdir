@@ -1,5 +1,5 @@
 # rrdir
-[![](https://img.shields.io/npm/v/rrdir.svg?style=flat)](https://www.npmjs.org/package/rrdir) [![](https://img.shields.io/npm/dm/rrdir.svg)](https://www.npmjs.org/package/rrdir) [![](https://packagephobia.com/badge?p=rrdir)](https://packagephobia.com/result?p=rrdir)
+[![](https://img.shields.io/npm/v/rrdir.svg?style=flat)](https://www.npmjs.org/package/rrdir) [![](https://img.shields.io/npm/dm/rrdir.svg)](https://www.npmjs.org/package/rrdir) [![](https://packagephobia.com/badge?p=rrdir)](https://packagephobia.com/result?p=rrdir) [![](https://depx.co/api/badge/rrdir)](https://depx.co/pkg/rrdir)
 
 > Recursive directory reader with a delightful API
 
