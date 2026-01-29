@@ -16,8 +16,8 @@ export type RRDirOpts = {
   strict?: boolean,
   stats?: boolean,
   followSymlinks?: boolean,
-  include?: string[],
-  exclude?: string[],
+  include?: Array<string>,
+  exclude?: Array<string>,
   insensitive?: boolean,
 };
 
@@ -101,7 +101,7 @@ function globToRegex(pattern: string, insensitive: boolean): RegExp {
 }
 
 // Create a matcher function from an array of glob patterns
-function createMatcher(patterns: string[] | undefined, insensitive: boolean): Matcher {
+function createMatcher(patterns: Array<string> | undefined, insensitive: boolean): Matcher {
   if (!patterns?.length) return null;
 
   const regexes = patterns.map(pattern => globToRegex(pattern, insensitive));
@@ -133,12 +133,12 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}, {inclu
     encoding = getEncoding(dir);
   }
 
-  let dirents: Dirent<T>[] = [];
+  let dirents: Array<Dirent<T>> = [];
   try {
     if (encoding === "buffer") {
-      dirents = await readdir(dir, {encoding: "buffer", withFileTypes: true}) as unknown as Dirent<T>[];
+      dirents = await readdir(dir, {encoding: "buffer", withFileTypes: true}) as unknown as Array<Dirent<T>>;
     } else {
-      dirents = await readdir(dir, {encoding: "utf8", withFileTypes: true}) as unknown as Dirent<T>[];
+      dirents = await readdir(dir, {encoding: "utf8", withFileTypes: true}) as unknown as Array<Dirent<T>>;
     }
   } catch (err) {
     if (opts.strict) throw err;
@@ -194,9 +194,9 @@ export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {i
   let dirents: Array<Dirent<T>> = [];
   try {
     if (encoding === "buffer") {
-      dirents = await readdir(dir, {encoding: "buffer", withFileTypes: true}) as unknown as Dirent<T>[];
+      dirents = await readdir(dir, {encoding: "buffer", withFileTypes: true}) as unknown as Array<Dirent<T>>;
     } else {
-      dirents = await readdir(dir, {encoding: "utf8", withFileTypes: true}) as unknown as Dirent<T>[];
+      dirents = await readdir(dir, {encoding: "utf8", withFileTypes: true}) as unknown as Array<Dirent<T>>;
     }
   } catch (err) {
     if (opts.strict) throw err;
@@ -254,9 +254,9 @@ export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeM
   let dirents: Array<Dirent<T>> = [];
   try {
     if (encoding === "buffer") {
-      dirents = readdirSync(dir, {encoding: "buffer", withFileTypes: true}) as unknown as Dirent<T>[];
+      dirents = readdirSync(dir, {encoding: "buffer", withFileTypes: true}) as unknown as Array<Dirent<T>>;
     } else {
-      dirents = readdirSync(dir, {encoding: "utf8", withFileTypes: true}) as unknown as Dirent<T>[];
+      dirents = readdirSync(dir, {encoding: "utf8", withFileTypes: true}) as unknown as Array<Dirent<T>>;
     }
   } catch (err) {
     if (opts.strict) throw err;

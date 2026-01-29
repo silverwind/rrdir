@@ -41,7 +41,7 @@ beforeAll(async () => {
   await writeFile(join(testDir, "test/dir2/exclude.txt"), "test");
   await writeFile(join(testDir, "test/dir2/exclude.md"), "test");
   await writeFile(join(testDir, "test/dir2/exclude.css"), "test");
-  if (!skipWeird) await writeFile(Buffer.from(joinUint8Array(join(testDir, "test"), weirdUint8Array)), "test");
+  if (!skipWeird) await writeFile(joinUint8Array(join(testDir, "test"), weirdUint8Array) as any, "test");
   await symlink(join(testDir, "test/file"), join(testDir, "test/filesymlink"));
   await symlink(join(testDir, "test/dir"), join(testDir, "test/dirsymlink"));
 });
@@ -105,20 +105,20 @@ test("basic", context => makeTest("test", context));
 test("basic slash", context => makeTest("test/", context));
 test("followSymlinks", context => makeTest("test", context, {followSymlinks: true}));
 
-test("stats", context => makeTest("test", context, {stats: true}, (results: Entry[]) => {
+test("stats", context => makeTest("test", context, {stats: true}, (results: Array<Entry>) => {
   for (const {path, stats} of results) {
     if ((path as string)?.includes?.(weirdString)) continue;
     expect(stats).toBeTruthy();
   }
 }));
 
-test("stats Uint8Array", context => makeTest(toUint8Array("test") as any, context, {stats: true}, (results: Entry[]) => {
+test("stats Uint8Array", context => makeTest(toUint8Array("test") as any, context, {stats: true}, (results: Array<Entry>) => {
   for (const {stats} of results) {
     expect(stats).toBeTruthy();
   }
 }));
 
-test("nostats", context => makeTest("test", context, {stats: false}, (results: Entry[]) => {
+test("nostats", context => makeTest("test", context, {stats: false}, (results: Array<Entry>) => {
   for (const entry of results) expect(entry.stats).toEqual(undefined);
 }));
 
@@ -130,7 +130,7 @@ test("exclude 5", context => makeTest("test", context, {exclude: ["**"]}, []));
 test("exclude 6", context => makeTest("test", context, {exclude: ["**.txt"]}, []));
 test("exclude 7", context => makeTest("test", context, {exclude: ["**.txt", "**.md"]}, []));
 
-test("exclude stats", context => makeTest("test", context, {exclude: ["**/dir", "**/dir2"], stats: true}, (results: Entry[]) => {
+test("exclude stats", context => makeTest("test", context, {exclude: ["**/dir", "**/dir2"], stats: true}, (results: Array<Entry>) => {
   const file = results.find(entry => entry.path === join(testDir, "test/file"));
   expect(file?.stats?.isFile()).toEqual(true);
 }));
@@ -145,7 +145,7 @@ test("include 6", context => makeTest("test", context, {include: ["**.txt"]}, []
 test("insensitive", context => makeTest("test", context, {include: ["**/u*"], insensitive: true}));
 test("exclude include", context => makeTest("test", context, {exclude: ["**/dir2"], include: ["**/file"]}));
 
-test("error", context => makeTest("notfound", context, undefined, (results: Entry[]) => {
+test("error", context => makeTest("notfound", context, undefined, (results: Array<Entry>) => {
   expect(results.length).toEqual(1);
   expect(results[0].path).toMatch(/notfound$/);
   expect(results[0].err).toBeTruthy();
@@ -157,18 +157,18 @@ test("error strict", async () => {
   expect(() => rrdirSync("notfound", {strict: true})).toThrow();
 });
 
-test("Uint8Array", context => makeTest(toUint8Array("test") as any, context, undefined, (results: Entry[]) => {
+test("Uint8Array", context => makeTest(toUint8Array("test") as any, context, undefined, (results: Array<Entry>) => {
   for (const entry of results) {
     expect(entry.path instanceof Uint8Array).toEqual(true);
   }
 }));
 
 if (!skipWeird) {
-  test("weird as string", context => makeTest("test", context, {include: ["**/x*"]}, (results: Entry[]) => {
+  test("weird as string", context => makeTest("test", context, {include: ["**/x*"]}, (results: Array<Entry>) => {
     expect(uint8ArrayContains(toUint8Array(results[0].path as string), weirdUint8Array)).toEqual(false);
   }));
 
-  test("weird as Uint8Array", context => makeTest(toUint8Array("test") as any, context, {include: ["**/x*"]}, (results: Entry[]) => {
+  test("weird as Uint8Array", context => makeTest(toUint8Array("test") as any, context, {include: ["**/x*"]}, (results: Array<Entry>) => {
     expect(uint8ArrayContains(results[0].path as Uint8Array, weirdUint8Array)).toEqual(true);
   }));
 }
