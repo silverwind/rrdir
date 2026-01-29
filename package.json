@@ -16,7 +16,6 @@
   "engines": {
     "node": ">=22"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "25.1.0",
     "eslint": "9.39.2",
