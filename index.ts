@@ -1,9 +1,7 @@
 import {readdir, stat, lstat} from "node:fs/promises";
 import {readdirSync, statSync, lstatSync} from "node:fs";
 import {sep, resolve} from "node:path";
-import picomatch from "picomatch";
 import type {Stats, Dirent} from "node:fs";
-import type {Matcher} from "picomatch";
 
 const encoder = new TextEncoder();
 const toUint8Array = encoder.encode.bind(encoder);
@@ -22,6 +20,8 @@ export type RRDirOpts = {
   exclude?: string[],
   insensitive?: boolean,
 };
+
+type Matcher = ((path: string) => boolean) | null;
 
 type InternalOpts = {
   includeMatcher?: Matcher,
@@ -70,18 +70,53 @@ function build<T extends Dir>(dirent: Dirent<T>, path: T, stats: Stats | undefin
   };
 }
 
-function makeMatchers({include, exclude, insensitive}: RRDirOpts) {
-  const opts = {
-    dot: true,
-    flags: insensitive ? "i" : undefined,
-  };
+// Convert a glob pattern to a regular expression
+function globToRegex(pattern: string, insensitive: boolean): RegExp {
+  // Normalize pattern to use forward slashes for simpler matching
+  pattern = pattern.replace(/\\/g, "/");
 
-  // resolve the path to an absolute one because picomatch can not deal properly
-  // with relative paths that start with ./ or .\
-  // https://github.com/micromatch/picomatch/issues/121
+  // Special handling for patterns ending with /** to also match the directory itself
+  const endsWithDoubleStar = pattern.endsWith("/**");
+
+  // Escape special regex characters except * and /
+  let regex = pattern
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    // Replace ** with placeholder
+    .replace(/\*\*/g, "__DOUBLESTAR__")
+    // Replace * to match anything except /
+    .replace(/\*/g, "[^/]*")
+    // Restore ** to match anything including /
+    .replace(/__DOUBLESTAR__/g, ".*");
+
+  if (endsWithDoubleStar) {
+    // Remove trailing /.*
+    regex = regex.slice(0, -3);
+    // Make trailing / and anything after it optional
+    regex = `^${regex}(?:/.*)?$`;
+  } else {
+    regex = `^${regex}$`;
+  }
+
+  return new RegExp(regex, insensitive ? "i" : "");
+}
+
+// Create a matcher function from an array of glob patterns
+function createMatcher(patterns: string[] | undefined, insensitive: boolean): Matcher {
+  if (!patterns?.length) return null;
+
+  const regexes = patterns.map(pattern => globToRegex(pattern, insensitive));
+
+  return (path: string) => {
+    // Normalize path to forward slashes for matching
+    const normalizedPath = resolve(path).replace(/\\/g, "/");
+    return regexes.some(regex => regex.test(normalizedPath));
+  };
+}
+
+function makeMatchers({include, exclude, insensitive}: RRDirOpts) {
   return {
-    includeMatcher: include?.length ? (path: string) => picomatch(include, opts)(resolve(path)) : null,
-    excludeMatcher: exclude?.length ? (path: string) => picomatch(exclude, opts)(resolve(path)) : null,
+    includeMatcher: createMatcher(include || [], insensitive || false),
+    excludeMatcher: createMatcher(exclude || [], insensitive || false),
   } as {
     includeMatcher: Matcher,
     excludeMatcher: Matcher,
