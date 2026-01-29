@@ -135,8 +135,7 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}, {inclu
 
   let dirents: Dirent<T>[] = [];
   try {
-    // @ts-expect-error -- bug in @types/node
-    dirents = await readdir(dir, {encoding, withFileTypes: true});
+    dirents = await readdir(dir, {encoding, withFileTypes: true} as any) as unknown as Dirent<T>[];
   } catch (err) {
     if (opts.strict) throw err;
     yield {path: dir, err};
@@ -190,8 +189,7 @@ export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {i
   const results: Array<Entry<T>> = [];
   let dirents: Array<Dirent<T>> = [];
   try {
-    // @ts-expect-error -- bug in @types/node
-    dirents = await readdir(dir, {encoding, withFileTypes: true});
+    dirents = await readdir(dir, {encoding, withFileTypes: true} as any) as unknown as Dirent<T>[];
   } catch (err) {
     if (opts.strict) throw err;
     results.push({path: dir, err});
@@ -247,8 +245,7 @@ export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeM
   const results: Array<Entry<T>> = [];
   let dirents: Array<Dirent<T>> = [];
   try {
-    // @ts-expect-error -- bug in @types/node
-    dirents = readdirSync(dir, {encoding, withFileTypes: true});
+    dirents = readdirSync(dir, {encoding, withFileTypes: true} as any) as unknown as Dirent<T>[];
   } catch (err) {
     if (opts.strict) throw err;
     results.push({path: dir, err});
