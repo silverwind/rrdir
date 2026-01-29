@@ -72,27 +72,28 @@ function build<T extends Dir>(dirent: Dirent<T>, path: T, stats: Stats | undefin
 
 // Convert a glob pattern to a regular expression
 function globToRegex(pattern: string, insensitive: boolean): RegExp {
+  // Normalize pattern to use forward slashes for simpler matching
+  pattern = pattern.replace(/\\/g, "/");
+
   // Special handling for patterns ending with /** to also match the directory itself
-  // e.g., **/dir2/** should match both /path/dir2 and /path/dir2/file
   const endsWithDoubleStar = pattern.endsWith("/**");
 
   // Escape special regex characters except * and /
   let regex = pattern
     .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-    // Handle ** to match any path segments (including /)
+    // Replace ** with placeholder
     .replace(/\*\*/g, "__DOUBLESTAR__")
-    // Handle * to match anything except path separator
-    .replace(/\*/g, `[^${sep === "\\" ? "\\\\" : sep}]*`)
-    // Restore ** as matching anything including path separators
+    // Replace * to match anything except /
+    .replace(/\*/g, "[^/]*")
+    // Restore ** to match anything including /
     .replace(/__DOUBLESTAR__/g, ".*");
 
   if (endsWithDoubleStar) {
-    // Remove the trailing /.*
+    // Remove trailing /.*
     regex = regex.slice(0, -3);
-    // Make the trailing separator and anything after optional
-    regex = `^${regex}(?:${sep === "\\" ? "\\\\" : sep}.*)?$`;
+    // Make trailing / and anything after it optional
+    regex = `^${regex}(?:/.*)?$`;
   } else {
-    // Add anchors
     regex = `^${regex}$`;
   }
 
@@ -100,14 +101,15 @@ function globToRegex(pattern: string, insensitive: boolean): RegExp {
 }
 
 // Create a matcher function from an array of glob patterns
-function createMatcher(patterns: string[], insensitive: boolean): Matcher {
+function createMatcher(patterns: string[] | undefined, insensitive: boolean): Matcher {
   if (!patterns?.length) return null;
 
   const regexes = patterns.map(pattern => globToRegex(pattern, insensitive));
 
   return (path: string) => {
-    const absolutePath = resolve(path);
-    return regexes.some(regex => regex.test(absolutePath));
+    // Normalize path to forward slashes for matching
+    const normalizedPath = resolve(path).replace(/\\/g, "/");
+    return regexes.some(regex => regex.test(normalizedPath));
   };
 }
 
