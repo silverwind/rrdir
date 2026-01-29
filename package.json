@@ -16,12 +16,9 @@
   "engines": {
     "node": ">=22"
   },
-  "dependencies": {
-    "picomatch": "4.0.3"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "24.10.1",
-    "@types/picomatch": "4.0.2",
     "eslint": "9.39.1",
     "eslint-config-silverwind": "111.0.5",
     "tsdown": "0.16.3",
