@@ -15,8 +15,8 @@ importers:
         specifier: 9.39.2
         version: 9.39.2(jiti@2.6.1)
       eslint-config-silverwind:
-        specifier: 118.0.1
-        version: 118.0.1(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
+        specifier: 120.1.2
+        version: 120.1.2(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
       jest-extended:
         specifier: 7.0.0
         version: 7.0.0(typescript@5.9.3)
@@ -959,8 +959,8 @@ packages:
     resolution: {integrity: sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==}
     engines: {node: '>=10'}
 
-  eslint-config-silverwind@118.0.1:
-    resolution: {integrity: sha512-ruiid0UihUmbQU74b5AM0/dKfzgsb15QWWzCy4rzMcC4F75IivseOMluy0Glde0tSuM9QxanMnbJr8J6G5B3HA==}
+  eslint-config-silverwind@120.1.2:
+    resolution: {integrity: sha512-k6ArwQGOZY7Q8sI7QgPukkzgysBfBuQSUFfIoEjRH7zTUVagv0g+0cS4my0eOtiPgsJqQJAJ1IHeqTj6YqbMUQ==}
     peerDependencies:
       eslint: '*'
 
@@ -998,6 +998,11 @@ packages:
         optional: true
       eslint-import-resolver-node:
         optional: true
+
+  eslint-plugin-react-refresh@0.5.0:
+    resolution: {integrity: sha512-ZYvmh7VfVgqR/7wR71I3Zl6hK/C5CcxdWYKZSpHawS5JCNgE4efhQWg/+/WPpgGAp9Ngp/rRZYyaIwmPQBq/lA==}
+    peerDependencies:
+      eslint: '>=9'
 
   eslint-scope@8.4.0:
     resolution: {integrity: sha512-sNXOfKCn74rt8RICKMvJS7XKV/Xk9kA7DyJr8mJik3S7Cwgy3qlkkmyS2uQB3jiJg6VNdZd/pDBJu0nvG2NlTg==}
@@ -2236,12 +2241,13 @@ snapshots:
 
   escape-string-regexp@4.0.0: {}
 
-  eslint-config-silverwind@118.0.1(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3):
+  eslint-config-silverwind@120.1.2(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3):
     dependencies:
       '@typescript-eslint/parser': 8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
       eslint: 9.39.2(jiti@2.6.1)
       eslint-import-resolver-typescript: 4.4.4(eslint-plugin-import-x@4.16.1(eslint@9.39.2(jiti@2.6.1)))(eslint@9.39.2(jiti@2.6.1))
       eslint-plugin-import-x: 4.16.1(eslint@9.39.2(jiti@2.6.1))
+      eslint-plugin-react-refresh: 0.5.0(eslint@9.39.2(jiti@2.6.1))
       jiti: 2.6.1
     transitivePeerDependencies:
       - '@typescript-eslint/utils'
@@ -2286,6 +2292,10 @@ snapshots:
       unrs-resolver: 1.11.1
     transitivePeerDependencies:
       - supports-color
+
+  eslint-plugin-react-refresh@0.5.0(eslint@9.39.2(jiti@2.6.1)):
+    dependencies:
+      eslint: 9.39.2(jiti@2.6.1)
 
   eslint-scope@8.4.0:
     dependencies:
