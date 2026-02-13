@@ -8,6 +8,7 @@ const toUint8Array = encoder.encode.bind(encoder);
 const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
 const sepUint8Array = toUint8Array(sep);
+const isWindows = sep === "\\";
 
 export type Encoding = "utf8" | "buffer";
 export type Dir = string | Buffer;
@@ -24,9 +25,9 @@ export type RRDirOpts = {
 type Matcher = ((path: string) => boolean) | null;
 
 type InternalOpts = {
-  includeMatcher?: Matcher,
-  excludeMatcher?: Matcher,
-  encoding?: Encoding,
+  includeMatcher: Matcher,
+  excludeMatcher: Matcher,
+  encoding: Encoding,
 };
 
 export type Entry<T = Dir> = {
@@ -42,7 +43,7 @@ export type Entry<T = Dir> = {
   err?: Error,
 };
 
-const getEncoding = (dir: Dir) => dir instanceof Uint8Array ? "buffer" : "utf8";
+const getEncoding = (dir: Dir): Encoding => dir instanceof Uint8Array ? "buffer" : "utf8";
 
 const defaultOpts: RRDirOpts = {
   strict: false,
@@ -53,21 +54,29 @@ const defaultOpts: RRDirOpts = {
   insensitive: false,
 };
 
-function makePath<T extends Dir>({name}: Dirent<T>, dir: T, encoding: Encoding | undefined): T {
+function makePath<T extends Dir>({name}: Dirent<T>, dir: T, encoding: Encoding): T {
   if (encoding === "buffer") {
-    return dir === "." ? name : Uint8Array.from([...dir, ...sepUint8Array, ...name]) as T;
+    if (dir === ".") return name;
+    const dirBuf = dir as unknown as Uint8Array;
+    const nameBuf = name as unknown as Uint8Array;
+    const result = new Uint8Array(dirBuf.length + sepUint8Array.length + nameBuf.length);
+    result.set(dirBuf, 0);
+    result.set(sepUint8Array, dirBuf.length);
+    result.set(nameBuf, dirBuf.length + sepUint8Array.length);
+    return result as T;
   } else {
     return dir === "." ? name : `${dir as string}${sep}${name}` as T;
   }
 }
 
-function build<T extends Dir>(dirent: Dirent<T>, path: T, stats: Stats | undefined, opts: RRDirOpts) {
-  return {
+function build<T extends Dir>(dirent: Dirent<T>, path: T, stats: Stats | undefined, opts: RRDirOpts): Entry<T> {
+  const entry: Entry<T> = {
     path,
     directory: (stats || dirent).isDirectory(),
     symlink: (stats || dirent).isSymbolicLink(),
-    ...(opts.stats ? {stats} : {}),
   };
+  if (opts.stats) entry.stats = stats;
+  return entry;
 }
 
 // Convert a glob pattern to a regular expression
@@ -108,7 +117,8 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
 
   return (path: string) => {
     // Normalize path to forward slashes for matching
-    const normalizedPath = resolve(path).replace(/\\/g, "/");
+    const resolved = resolve(path);
+    const normalizedPath = isWindows ? resolved.replace(/\\/g, "/") : resolved;
     return regexes.some(regex => regex.test(normalizedPath));
   };
 }
@@ -123,15 +133,25 @@ function makeMatchers({include, exclude, insensitive}: RRDirOpts) {
   };
 }
 
-export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): AsyncGenerator<Entry<T>> {
-  if (includeMatcher === undefined) {
-    opts = {...defaultOpts, ...opts};
-    ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (typeof dir === "string" && /[/\\]$/.test(dir)) {
-      dir = dir.substring(0, dir.length - 1) as T;
-    }
-    encoding = getEncoding(dir);
+function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, opts: RRDirOpts, internalOpts: InternalOpts} {
+  opts = {...defaultOpts, ...opts};
+  const {includeMatcher, excludeMatcher} = makeMatchers(opts);
+  if (typeof dir === "string" && /[/\\]$/.test(dir)) {
+    dir = dir.substring(0, dir.length - 1) as T;
   }
+  const encoding = getEncoding(dir);
+  return {dir, opts, internalOpts: {includeMatcher, excludeMatcher, encoding}};
+}
+
+function getStringPath(path: Dir, encoding: Encoding): string {
+  return encoding === "buffer" ? toString(path as Buffer) : path as string;
+}
+
+export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}, internalOpts?: InternalOpts): AsyncGenerator<Entry<T>> {
+  if (!internalOpts) {
+    ({dir, opts, internalOpts} = initOpts(dir, opts));
+  }
+  const {includeMatcher, excludeMatcher, encoding} = internalOpts;
 
   let dirents: Array<Dirent<T>> = [];
   try {
@@ -144,11 +164,11 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}, {inclu
 
   for (const dirent of dirents) {
     const path = makePath<T>(dirent, dir, encoding);
-    if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : (path as string))) continue;
+    const stringPath = getStringPath(path, encoding);
+    if (excludeMatcher?.(stringPath)) continue;
 
     const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
-    const encodedPath: string = encoding === "buffer" ? toString(path as Buffer) : path as string;
-    const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
+    const isIncluded: boolean = !includeMatcher || includeMatcher(stringPath);
     let stats: Stats | undefined;
 
     if (isIncluded) {
@@ -172,21 +192,20 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}, {inclu
       recurse = true;
     }
 
-    if (recurse) yield* rrdir(path, opts, {includeMatcher, excludeMatcher, encoding});
+    if (recurse) yield* rrdir(path, opts, internalOpts);
   }
 }
 
-export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): Promise<Array<Entry<T>>> {
-  if (includeMatcher === undefined) {
-    opts = {...defaultOpts, ...opts};
-    ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (typeof dir === "string" && /[/\\]$/.test(dir)) {
-      dir = dir.substring(0, dir.length - 1) as T;
-    }
-    encoding = getEncoding(dir);
-  }
-
+export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Promise<Array<Entry<T>>> {
+  const init = initOpts(dir, opts);
   const results: Array<Entry<T>> = [];
+  await rrdirAsyncInner(init.dir, init.opts, init.internalOpts, results);
+  return results;
+}
+
+async function rrdirAsyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalOpts: InternalOpts, results: Array<Entry<T>>): Promise<void> {
+  const {includeMatcher, excludeMatcher, encoding} = internalOpts;
+
   let dirents: Array<Dirent<T>> = [];
   try {
     dirents = await readdir(dir, {encoding, withFileTypes: true} as any) as unknown as Array<Dirent<T>>;
@@ -194,15 +213,15 @@ export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {i
     if (opts.strict) throw err;
     results.push({path: dir, err});
   }
-  if (!dirents.length) return results;
+  if (!dirents.length) return;
 
   await Promise.all(dirents.map(async dirent => {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : path as string)) return;
+    const stringPath = getStringPath(path, encoding);
+    if (excludeMatcher?.(stringPath)) return;
 
     const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
-    const encodedPath: string = encoding === "buffer" ? toString(path as Buffer) : path as string;
-    const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
+    const isIncluded: boolean = !includeMatcher || includeMatcher(stringPath);
     let stats: Stats | undefined;
 
     if (isIncluded) {
@@ -226,23 +245,20 @@ export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {i
       recurse = true;
     }
 
-    if (recurse) results.push(...await rrdirAsync(path, opts, {includeMatcher, excludeMatcher, encoding}));
+    if (recurse) await rrdirAsyncInner(path, opts, internalOpts, results);
   }));
+}
 
+export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Array<Entry<T>> {
+  const init = initOpts(dir, opts);
+  const results: Array<Entry<T>> = [];
+  rrdirSyncInner(init.dir, init.opts, init.internalOpts, results);
   return results;
 }
 
-export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeMatcher, excludeMatcher, encoding}: InternalOpts = {}): Array<Entry<T>> {
-  if (includeMatcher === undefined) {
-    opts = {...defaultOpts, ...opts};
-    ({includeMatcher, excludeMatcher} = makeMatchers(opts));
-    if (typeof dir === "string" && /[/\\]$/.test(dir)) {
-      dir = dir.substring(0, dir.length - 1) as T;
-    }
-    encoding = getEncoding(dir);
-  }
+function rrdirSyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalOpts: InternalOpts, results: Array<Entry<T>>): void {
+  const {includeMatcher, excludeMatcher, encoding} = internalOpts;
 
-  const results: Array<Entry<T>> = [];
   let dirents: Array<Dirent<T>> = [];
   try {
     dirents = readdirSync(dir, {encoding, withFileTypes: true} as any) as unknown as Array<Dirent<T>>;
@@ -250,15 +266,15 @@ export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeM
     if (opts.strict) throw err;
     results.push({path: dir, err});
   }
-  if (!dirents.length) return results;
+  if (!dirents.length) return;
 
   for (const dirent of dirents) {
     const path = makePath(dirent, dir, encoding);
-    if (excludeMatcher?.(encoding === "buffer" ? toString(path as Buffer) : path as string)) continue;
+    const stringPath = getStringPath(path, encoding);
+    if (excludeMatcher?.(stringPath)) continue;
 
     const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
-    const encodedPath: string = encoding === "buffer" ? toString(path as Buffer) : path as string;
-    const isIncluded: boolean = !includeMatcher || includeMatcher(encodedPath);
+    const isIncluded: boolean = !includeMatcher || includeMatcher(stringPath);
     let stats: Stats | undefined;
 
     if (isIncluded) {
@@ -281,8 +297,6 @@ export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}, {includeM
       recurse = true;
     }
 
-    if (recurse) results.push(...rrdirSync(path, opts, {includeMatcher, excludeMatcher, encoding}));
+    if (recurse) rrdirSyncInner(path, opts, internalOpts, results);
   }
-
-  return results;
 }
