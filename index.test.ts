@@ -3,7 +3,6 @@ import {join, sep, relative} from "node:path";
 import {writeFile, mkdir, symlink, rm} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
 import {platform, tmpdir} from "node:os";
-import type {TestContext} from "vitest";
 
 const encoder = new TextEncoder();
 const toUint8Array = encoder.encode.bind(encoder);
@@ -18,6 +17,7 @@ const weirdString = toString(weirdUint8Array);
 
 // node on windows apparently sometimes can not follow symlink directories
 const isWindows = platform() === "win32";
+const isBun = Boolean(globalThis.Bun);
 
 const skipWeird = platform() === "darwin" || isWindows;
 const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
@@ -72,10 +72,7 @@ function normalize<T extends Array<Entry>>(entries: T): T {
   return ret;
 }
 
-async function makeTest<T extends Dir>(dir: T, context: TestContext, opts?: RRDirOpts, expected?: any, skip?: boolean) {
-  if (isWindows && opts?.followSymlinks) context.skip();
-  if (skip) context.skip();
-
+async function makeTest<T extends Dir>(dir: T, opts?: RRDirOpts, expected?: any) {
   if (typeof dir === "string") {
     dir = join(testDir, dir) as T;
   } else {
@@ -101,51 +98,51 @@ async function makeTest<T extends Dir>(dir: T, context: TestContext, opts?: RRDi
   }
 }
 
-test("basic", context => makeTest("test", context));
-test("basic slash", context => makeTest("test/", context));
-test("followSymlinks", context => makeTest("test", context, {followSymlinks: true}));
+test("basic", () => makeTest("test"));
+test("basic slash", () => makeTest("test/"));
+test.skipIf(isWindows)("followSymlinks", () => makeTest("test", {followSymlinks: true}));
 
-test("stats", context => makeTest("test", context, {stats: true}, (results: Array<Entry>) => {
+test("stats", () => makeTest("test", {stats: true}, (results: Array<Entry>) => {
   for (const {path, stats} of results) {
     if ((path as string)?.includes?.(weirdString)) continue;
     expect(stats).toBeTruthy();
   }
 }));
 
-test("stats Uint8Array", context => makeTest(toUint8Array("test") as any, context, {stats: true}, (results: Array<Entry>) => {
+test.skipIf(isBun)("stats Uint8Array", () => makeTest(toUint8Array("test") as any, {stats: true}, (results: Array<Entry>) => {
   for (const {stats} of results) {
     expect(stats).toBeTruthy();
   }
 }));
 
-test("nostats", context => makeTest("test", context, {stats: false}, (results: Array<Entry>) => {
+test("nostats", () => makeTest("test", {stats: false}, (results: Array<Entry>) => {
   for (const entry of results) expect(entry.stats).toEqual(undefined);
 }));
 
-test("exclude", context => makeTest("test", context, {exclude: ["**/dir"]}));
-test("exclude 2", context => makeTest("test", context, {exclude: ["**/dir2"]}));
-test("exclude 3", context => makeTest("test", context, {exclude: ["**/dir*"]}));
-test("exclude 4", context => makeTest("test", context, {exclude: ["**/dir", "**/dir2"]}));
-test("exclude 5", context => makeTest("test", context, {exclude: ["**"]}, []));
-test("exclude 6", context => makeTest("test", context, {exclude: ["**.txt"]}, []));
-test("exclude 7", context => makeTest("test", context, {exclude: ["**.txt", "**.md"]}, []));
+test("exclude", () => makeTest("test", {exclude: ["**/dir"]}));
+test("exclude 2", () => makeTest("test", {exclude: ["**/dir2"]}));
+test("exclude 3", () => makeTest("test", {exclude: ["**/dir*"]}));
+test("exclude 4", () => makeTest("test", {exclude: ["**/dir", "**/dir2"]}));
+test("exclude 5", () => makeTest("test", {exclude: ["**"]}, []));
+test("exclude 6", () => makeTest("test", {exclude: ["**.txt"]}, []));
+test("exclude 7", () => makeTest("test", {exclude: ["**.txt", "**.md"]}, []));
 
-test("exclude stats", context => makeTest("test", context, {exclude: ["**/dir", "**/dir2"], stats: true}, (results: Array<Entry>) => {
+test("exclude stats", () => makeTest("test", {exclude: ["**/dir", "**/dir2"], stats: true}, (results: Array<Entry>) => {
   const file = results.find(entry => entry.path === join(testDir, "test/file"));
   expect(file?.stats?.isFile()).toEqual(true);
 }));
 
 // does not work on windows, likely a picomatch bug
-test("include", context => makeTest("test", context, {include: [join(testDir, "**/f*")]}, undefined, isWindows));
-test("include 2", context => makeTest("test", context, {include: ["**"]}));
-test("include 3", context => makeTest("test", context, {include: ["**/dir2/**"]}));
-test("include 4", context => makeTest("test", context, {include: ["**/dir/"]}));
-test("include 5", context => makeTest("test", context, {include: ["**/dir"]}));
-test("include 6", context => makeTest("test", context, {include: ["**.txt"]}, []));
-test("insensitive", context => makeTest("test", context, {include: ["**/u*"], insensitive: true}));
-test("exclude include", context => makeTest("test", context, {exclude: ["**/dir2"], include: ["**/file"]}));
+test.skipIf(isWindows)("include", () => makeTest("test", {include: [join(testDir, "**/f*")]}));
+test("include 2", () => makeTest("test", {include: ["**"]}));
+test("include 3", () => makeTest("test", {include: ["**/dir2/**"]}));
+test("include 4", () => makeTest("test", {include: ["**/dir/"]}));
+test("include 5", () => makeTest("test", {include: ["**/dir"]}));
+test("include 6", () => makeTest("test", {include: ["**.txt"]}, []));
+test("insensitive", () => makeTest("test", {include: ["**/u*"], insensitive: true}));
+test("exclude include", () => makeTest("test", {exclude: ["**/dir2"], include: ["**/file"]}));
 
-test("error", context => makeTest("notfound", context, undefined, (results: Array<Entry>) => {
+test("error", () => makeTest("notfound", undefined, (results: Array<Entry>) => {
   expect(results.length).toEqual(1);
   expect(results[0].path).toMatch(/notfound$/);
   expect(results[0].err).toBeTruthy();
@@ -157,18 +154,18 @@ test("error strict", async () => {
   expect(() => rrdirSync("notfound", {strict: true})).toThrow();
 });
 
-test("Uint8Array", context => makeTest(toUint8Array("test") as any, context, undefined, (results: Array<Entry>) => {
+test.skipIf(isBun)("Uint8Array", () => makeTest(toUint8Array("test") as any, undefined, (results: Array<Entry>) => {
   for (const entry of results) {
     expect(entry.path instanceof Uint8Array).toEqual(true);
   }
 }));
 
 if (!skipWeird) {
-  test("weird as string", context => makeTest("test", context, {include: ["**/x*"]}, (results: Array<Entry>) => {
+  test("weird as string", () => makeTest("test", {include: ["**/x*"]}, (results: Array<Entry>) => {
     expect(uint8ArrayContains(toUint8Array(results[0].path as string), weirdUint8Array)).toEqual(false);
   }));
 
-  test("weird as Uint8Array", context => makeTest(toUint8Array("test") as any, context, {include: ["**/x*"]}, (results: Array<Entry>) => {
+  test("weird as Uint8Array", () => makeTest(toUint8Array("test") as any, {include: ["**/x*"]}, (results: Array<Entry>) => {
     expect(uint8ArrayContains(results[0].path as Uint8Array, weirdUint8Array)).toEqual(true);
   }));
 }
