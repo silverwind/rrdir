@@ -31,14 +31,14 @@ async function bench(label: string, fn: () => unknown | Promise<unknown>) {
   }
   const avg = times.reduce((a, b) => a + b, 0) / times.length;
   const min = Math.min(...times);
-  console.log(`${label.padEnd(40)} avg: ${avg.toFixed(1)}ms  min: ${min.toFixed(1)}ms`);
+  console.info(`${label.padEnd(40)} avg: ${avg.toFixed(1)}ms  min: ${min.toFixed(1)}ms`);
 }
 
 const tmpDir = mkdtempSync(join(tmpdir(), "rrdir-bench-"));
 const totalFiles = Array.from({length: depth + 1}, (_, d) => breadth ** d * filesPerDir).reduce((a, b) => a + b, 0);
 const totalDirs = Array.from({length: depth}, (_, d) => breadth ** (d + 1)).reduce((a, b) => a + b, 0);
 
-console.log(`Creating tree: ${totalFiles} files, ${totalDirs} dirs`);
+console.info(`Creating tree: ${totalFiles} files, ${totalDirs} dirs`);
 createTree(tmpDir, 0);
 
 try {
@@ -61,7 +61,7 @@ try {
 
   try {
     const {fdir} = await import("fdir");
-    console.log("");
+    console.info("");
     await bench("fdir async", () => new fdir().withRelativePaths().crawl(tmpDir).withPromise());
     await bench("fdir sync", () => new fdir().withRelativePaths().crawl(tmpDir).sync());
     await bench("fdir async + dirs", () => new fdir().withRelativePaths().withDirs().crawl(tmpDir).withPromise());

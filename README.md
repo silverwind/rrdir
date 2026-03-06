@@ -1,11 +1,19 @@
 # rrdir
 [![](https://img.shields.io/npm/v/rrdir.svg?style=flat)](https://www.npmjs.org/package/rrdir) [![](https://img.shields.io/npm/dm/rrdir.svg)](https://www.npmjs.org/package/rrdir) [![](https://packagephobia.com/badge?p=rrdir)](https://packagephobia.com/result?p=rrdir) [![](https://depx.co/api/badge/rrdir)](https://depx.co/pkg/rrdir)
 
-> Recursive directory reader with a delightful API
-
 `rrdir` recursively reads a directory and returns entries within via an async iterator or async/sync as Array. It can typically iterate millions of files in a matter of seconds. Memory usage is `O(1)` for the async iterator and `O(n)` for the Array variants.
 
-Contrary to other similar modules, this module is optionally able to read any path including ones that contain invalid UTF-8 sequences.
+This module is able to read any path including ones that contain invalid UTF-8 sequences.
+
+| Benchmark | rrdir | fdir |
+|---|---|---|
+| async | 64ms | 57ms |
+| sync | 154ms | 178ms |
+| async + exclude | 46ms | — |
+| sync + exclude | 120ms | — |
+| async iterator | 319ms | — |
+
+Results for 122K entries (111K files, 11K dirs), Node.js on macOS. rrdir returns richer entries (path + directory + symlink) while fdir returns only paths. Run with `make bench`.
 
 ## Usage
 ```console
