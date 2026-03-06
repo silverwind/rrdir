@@ -1,6 +1,6 @@
 import {readdir, stat, lstat} from "node:fs/promises";
 import {readdirSync, statSync, lstatSync} from "node:fs";
-import {sep, resolve} from "node:path";
+import {sep, resolve, isAbsolute} from "node:path";
 import type {Stats, Dirent} from "node:fs";
 
 const encoder = new TextEncoder();
@@ -114,11 +114,12 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
   if (!patterns?.length) return null;
 
   const regexes = patterns.map(pattern => globToRegex(pattern, insensitive));
+  const cwdPrefix = resolve(".") + sep;
 
   return (path: string) => {
-    // Normalize path to forward slashes for matching
-    const resolved = resolve(path);
-    const normalizedPath = isWindows ? resolved.replace(/\\/g, "/") : resolved;
+    // Normalize path to absolute using string concatenation instead of resolve()
+    const absolute = isAbsolute(path) ? path : cwdPrefix + path;
+    const normalizedPath = isWindows ? absolute.replace(/\\/g, "/") : absolute;
     return regexes.some(regex => regex.test(normalizedPath));
   };
 }
@@ -152,6 +153,7 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}, intern
     ({dir, opts, internalOpts} = initOpts(dir, opts));
   }
   const {includeMatcher, excludeMatcher, encoding} = internalOpts;
+  const hasMatcher = Boolean(excludeMatcher || includeMatcher);
 
   let dirents: Array<Dirent<T>> = [];
   try {
@@ -164,11 +166,15 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}, intern
 
   for (const dirent of dirents) {
     const path = makePath<T>(dirent, dir, encoding);
-    const stringPath = getStringPath(path, encoding);
-    if (excludeMatcher?.(stringPath)) continue;
+
+    let isIncluded = true;
+    if (hasMatcher) {
+      const stringPath = getStringPath(path, encoding);
+      if (excludeMatcher?.(stringPath)) continue;
+      isIncluded = !includeMatcher || includeMatcher(stringPath);
+    }
 
     const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
-    const isIncluded: boolean = !includeMatcher || includeMatcher(stringPath);
     let stats: Stats | undefined;
 
     if (isIncluded) {
@@ -205,6 +211,7 @@ export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}): P
 
 async function rrdirAsyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalOpts: InternalOpts, results: Array<Entry<T>>): Promise<void> {
   const {includeMatcher, excludeMatcher, encoding} = internalOpts;
+  const hasMatcher = Boolean(excludeMatcher || includeMatcher);
 
   let dirents: Array<Dirent<T>> = [];
   try {
@@ -215,13 +222,18 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalO
   }
   if (!dirents.length) return;
 
-  await Promise.all(dirents.map(async dirent => {
+  const pendingDirs: Array<T> = [];
+  for (const dirent of dirents) {
     const path = makePath(dirent, dir, encoding);
-    const stringPath = getStringPath(path, encoding);
-    if (excludeMatcher?.(stringPath)) return;
+
+    let isIncluded = true;
+    if (hasMatcher) {
+      const stringPath = getStringPath(path, encoding);
+      if (excludeMatcher?.(stringPath)) continue;
+      isIncluded = !includeMatcher || includeMatcher(stringPath);
+    }
 
     const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
-    const isIncluded: boolean = !includeMatcher || includeMatcher(stringPath);
     let stats: Stats | undefined;
 
     if (isIncluded) {
@@ -245,8 +257,12 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalO
       recurse = true;
     }
 
-    if (recurse) await rrdirAsyncInner(path, opts, internalOpts, results);
-  }));
+    if (recurse) pendingDirs.push(path);
+  }
+
+  if (pendingDirs.length) {
+    await Promise.all(pendingDirs.map(p => rrdirAsyncInner(p, opts, internalOpts, results)));
+  }
 }
 
 export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Array<Entry<T>> {
@@ -258,6 +274,7 @@ export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Array<En
 
 function rrdirSyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalOpts: InternalOpts, results: Array<Entry<T>>): void {
   const {includeMatcher, excludeMatcher, encoding} = internalOpts;
+  const hasMatcher = Boolean(excludeMatcher || includeMatcher);
 
   let dirents: Array<Dirent<T>> = [];
   try {
@@ -270,11 +287,15 @@ function rrdirSyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalOpts: In
 
   for (const dirent of dirents) {
     const path = makePath(dirent, dir, encoding);
-    const stringPath = getStringPath(path, encoding);
-    if (excludeMatcher?.(stringPath)) continue;
+
+    let isIncluded = true;
+    if (hasMatcher) {
+      const stringPath = getStringPath(path, encoding);
+      if (excludeMatcher?.(stringPath)) continue;
+      isIncluded = !includeMatcher || includeMatcher(stringPath);
+    }
 
     const isSymbolicLink = Boolean(opts.followSymlinks && dirent.isSymbolicLink());
-    const isIncluded: boolean = !includeMatcher || includeMatcher(stringPath);
     let stats: Stats | undefined;
 
     if (isIncluded) {
