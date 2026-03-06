@@ -20,6 +20,9 @@ importers:
       eslint-config-silverwind:
         specifier: 122.0.6
         version: 122.0.6(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3)
+      fdir:
+        specifier: 6.5.0
+        version: 6.5.0(picomatch@4.0.3)
       jest-extended:
         specifier: 7.0.0
         version: 7.0.0(typescript@5.9.3)
