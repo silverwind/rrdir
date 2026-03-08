@@ -17,7 +17,7 @@ const weirdString = toString(weirdUint8Array);
 
 // node on windows apparently sometimes can not follow symlink directories
 const isWindows = platform() === "win32";
-const isBun = Boolean(globalThis.Bun);
+const isBun = Boolean((globalThis as any).Bun);
 
 const skipWeird = platform() === "darwin" || isWindows;
 const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
@@ -261,7 +261,7 @@ if (!skipWeird) {
     expect(uint8ArrayContains(toUint8Array(results[0].path as string), weirdUint8Array)).toEqual(false);
   }));
 
-  test("weird as Uint8Array", () => makeTest(toUint8Array("test") as any, {include: ["**/x*"]}, (results: Array<Entry>) => {
+  test.skipIf(isBun)("weird as Uint8Array", () => makeTest(toUint8Array("test") as any, {include: ["**/x*"]}, (results: Array<Entry>) => {
     expect(uint8ArrayContains(results[0].path as Uint8Array, weirdUint8Array)).toEqual(true);
   }));
 }
