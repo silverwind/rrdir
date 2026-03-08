@@ -72,7 +72,11 @@ function normalize<T extends Array<Entry>>(entries: T): T {
   return ret;
 }
 
-async function makeTest<T extends Dir>(dir: T, opts?: RRDirOpts, expected?: any) {
+function entry(path: string, directory = false, symlink = false) {
+  return {path, directory, symlink};
+}
+
+async function makeTest<T extends Dir>(dir: T, opts: RRDirOpts | undefined, expected: Array<ReturnType<typeof entry>> | ((results: Array<Entry>) => void)) {
   if (typeof dir === "string") {
     dir = join(testDir, dir) as T;
   } else {
@@ -92,15 +96,42 @@ async function makeTest<T extends Dir>(dir: T, opts?: RRDirOpts, expected?: any)
     iteratorResults = normalize(iteratorResults);
     asyncResults = normalize(asyncResults);
     syncResults = normalize(syncResults);
-    expect(iteratorResults).toMatchSnapshot();
+    expect(iteratorResults).toEqual(expected);
     expect(syncResults).toEqual(iteratorResults);
     expect(asyncResults).toEqual(iteratorResults);
   }
 }
 
-test("basic", () => makeTest("test"));
-test("basic slash", () => makeTest("test/"));
-test.skipIf(isWindows)("followSymlinks", () => makeTest("test", {followSymlinks: true}));
+const basicExpected = [
+  entry("test/dir", true),
+  entry("test/dir/file"),
+  entry("test/dir2", true),
+  entry("test/dir2/exclude.css"),
+  entry("test/dir2/exclude.md"),
+  entry("test/dir2/exclude.txt"),
+  entry("test/dir2/file"),
+  entry("test/dir2/UPPER"),
+  entry("test/dirsymlink", false, true),
+  entry("test/file"),
+  entry("test/filesymlink", false, true),
+];
+
+test("basic", () => makeTest("test", undefined, basicExpected));
+test("basic slash", () => makeTest("test/", undefined, basicExpected));
+test.skipIf(isWindows)("followSymlinks", () => makeTest("test", {followSymlinks: true}, [
+  entry("test/dir", true),
+  entry("test/dir/file"),
+  entry("test/dir2", true),
+  entry("test/dir2/exclude.css"),
+  entry("test/dir2/exclude.md"),
+  entry("test/dir2/exclude.txt"),
+  entry("test/dir2/file"),
+  entry("test/dir2/UPPER"),
+  entry("test/dirsymlink", true),
+  entry("test/dirsymlink/file"),
+  entry("test/file"),
+  entry("test/filesymlink"),
+]));
 
 test("stats", () => makeTest("test", {stats: true}, (results: Array<Entry>) => {
   for (const {path, stats} of results) {
@@ -116,31 +147,96 @@ test.skipIf(isBun)("stats Uint8Array", () => makeTest(toUint8Array("test") as an
 }));
 
 test("nostats", () => makeTest("test", {stats: false}, (results: Array<Entry>) => {
-  for (const entry of results) expect(entry.stats).toEqual(undefined);
+  for (const result of results) expect(result.stats).toEqual(undefined);
 }));
 
-test("exclude", () => makeTest("test", {exclude: ["**/dir"]}));
-test("exclude 2", () => makeTest("test", {exclude: ["**/dir2"]}));
-test("exclude 3", () => makeTest("test", {exclude: ["**/dir*"]}));
-test("exclude 4", () => makeTest("test", {exclude: ["**/dir", "**/dir2"]}));
+test("exclude", () => makeTest("test", {exclude: ["**/dir"]}, [
+  entry("test/dir2", true),
+  entry("test/dir2/exclude.css"),
+  entry("test/dir2/exclude.md"),
+  entry("test/dir2/exclude.txt"),
+  entry("test/dir2/file"),
+  entry("test/dir2/UPPER"),
+  entry("test/dirsymlink", false, true),
+  entry("test/file"),
+  entry("test/filesymlink", false, true),
+]));
+test("exclude 2", () => makeTest("test", {exclude: ["**/dir2"]}, [
+  entry("test/dir", true),
+  entry("test/dir/file"),
+  entry("test/dirsymlink", false, true),
+  entry("test/file"),
+  entry("test/filesymlink", false, true),
+]));
+test("exclude 3", () => makeTest("test", {exclude: ["**/dir*"]}, [
+  entry("test/file"),
+  entry("test/filesymlink", false, true),
+]));
+test("exclude 4", () => makeTest("test", {exclude: ["**/dir", "**/dir2"]}, [
+  entry("test/dirsymlink", false, true),
+  entry("test/file"),
+  entry("test/filesymlink", false, true),
+]));
 test("exclude 5", () => makeTest("test", {exclude: ["**"]}, []));
-test("exclude 6", () => makeTest("test", {exclude: ["**.txt"]}, []));
-test("exclude 7", () => makeTest("test", {exclude: ["**.txt", "**.md"]}, []));
+test("exclude 6", () => makeTest("test", {exclude: ["**.txt"]}, [
+  entry("test/dir", true),
+  entry("test/dir/file"),
+  entry("test/dir2", true),
+  entry("test/dir2/exclude.css"),
+  entry("test/dir2/exclude.md"),
+  entry("test/dir2/file"),
+  entry("test/dir2/UPPER"),
+  entry("test/dirsymlink", false, true),
+  entry("test/file"),
+  entry("test/filesymlink", false, true),
+]));
+test("exclude 7", () => makeTest("test", {exclude: ["**.txt", "**.md"]}, [
+  entry("test/dir", true),
+  entry("test/dir/file"),
+  entry("test/dir2", true),
+  entry("test/dir2/exclude.css"),
+  entry("test/dir2/file"),
+  entry("test/dir2/UPPER"),
+  entry("test/dirsymlink", false, true),
+  entry("test/file"),
+  entry("test/filesymlink", false, true),
+]));
 
 test("exclude stats", () => makeTest("test", {exclude: ["**/dir", "**/dir2"], stats: true}, (results: Array<Entry>) => {
-  const file = results.find(entry => entry.path === join(testDir, "test/file"));
+  const file = results.find(result => result.path === join(testDir, "test/file"));
   expect(file?.stats?.isFile()).toEqual(true);
 }));
 
 // does not work on windows, likely a picomatch bug
-test.skipIf(isWindows)("include", () => makeTest("test", {include: [join(testDir, "**/f*")]}));
-test("include 2", () => makeTest("test", {include: ["**"]}));
-test("include 3", () => makeTest("test", {include: ["**/dir2/**"]}));
-test("include 4", () => makeTest("test", {include: ["**/dir/"]}));
-test("include 5", () => makeTest("test", {include: ["**/dir"]}));
-test("include 6", () => makeTest("test", {include: ["**.txt"]}, []));
-test("insensitive", () => makeTest("test", {include: ["**/u*"], insensitive: true}));
-test("exclude include", () => makeTest("test", {exclude: ["**/dir2"], include: ["**/file"]}));
+test.skipIf(isWindows)("include", () => makeTest("test", {include: [join(testDir, "**/f*")]}, [
+  entry("test/dir/file"),
+  entry("test/dir2/file"),
+  entry("test/file"),
+  entry("test/filesymlink", false, true),
+]));
+test("include 2", () => makeTest("test", {include: ["**"]}, basicExpected));
+test("include 3", () => makeTest("test", {include: ["**/dir2/**"]}, [
+  entry("test/dir2", true),
+  entry("test/dir2/exclude.css"),
+  entry("test/dir2/exclude.md"),
+  entry("test/dir2/exclude.txt"),
+  entry("test/dir2/file"),
+  entry("test/dir2/UPPER"),
+]));
+test("include 4", () => makeTest("test", {include: ["**/dir/"]}, []));
+test("include 5", () => makeTest("test", {include: ["**/dir"]}, [
+  entry("test/dir", true),
+]));
+test("include 6", () => makeTest("test", {include: ["**.txt"]}, [
+  entry("test/dir2/exclude.txt"),
+]));
+test("insensitive", () => makeTest("test", {include: ["**/u*"], insensitive: true}, [
+  entry("test/dir2/UPPER"),
+]));
+test("exclude include", () => makeTest("test", {exclude: ["**/dir2"], include: ["**/file"]}, [
+  entry("test/dir/file"),
+  entry("test/file"),
+]));
 
 test("error", () => makeTest("notfound", undefined, (results: Array<Entry>) => {
   expect(results.length).toEqual(1);
