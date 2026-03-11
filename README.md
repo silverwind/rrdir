@@ -7,11 +7,12 @@ This module is able to read any path including ones that contain invalid UTF-8 s
 
 | Benchmark | rrdir | fdir |
 |---|---|---|
-| async | 55ms | 55ms |
-| sync | 148ms | 171ms |
-| async + exclude | 46ms | — |
-| sync + exclude | 115ms | — |
-| async iterator | 76ms | — |
+| async | 56ms | 56ms |
+| sync | 155ms | 174ms |
+| async + exclude | 43ms | — |
+| sync + exclude | 118ms | — |
+| async iterator | 77ms | — |
+| async iterator + exclude | 68ms | — |
 
 Results for 122K entries (111K files, 11K dirs), Node.js on macOS. rrdir returns richer entries (path + directory + symlink) while fdir returns only paths. Run with `make bench`.
 

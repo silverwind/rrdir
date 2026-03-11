@@ -1,4 +1,4 @@
-import {rrdir, rrdirAsync, rrdirSync} from "./index.ts";
+import {rrdir, rrdirAsync, rrdirSync} from "./dist/index.js"; // eslint-disable-line import-x/extensions
 import {mkdtempSync, writeFileSync, mkdirSync, rmSync} from "node:fs";
 import {join} from "node:path";
 import {tmpdir} from "node:os";

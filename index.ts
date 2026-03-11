@@ -8,7 +8,6 @@ const toUint8Array = encoder.encode.bind(encoder);
 const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
 const sepUint8Array = toUint8Array(sep);
-const isWindows = sep === "\\";
 
 export type Encoding = "utf8" | "buffer";
 export type Dir = string | Buffer;
@@ -46,17 +45,6 @@ export type Entry<T = Dir> = {
   stats?: Stats,
   /** Any error encountered while reading this entry. `undefined` on success. */
   err?: Error,
-};
-
-const getEncoding = (dir: Dir): Encoding => dir instanceof Uint8Array ? "buffer" : "utf8";
-
-const defaultOpts: RRDirOpts = {
-  strict: false,
-  stats: false,
-  followSymlinks: false,
-  exclude: undefined,
-  include: undefined,
-  insensitive: false,
 };
 
 function makePath<T extends Dir>({name}: Dirent<T>, dir: T, encoding: Encoding): T {
@@ -124,29 +112,20 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
   return (path: string) => {
     // Normalize path to absolute using string concatenation instead of resolve()
     const absolute = isAbsolute(path) ? path : cwdPrefix + path;
-    const normalizedPath = isWindows ? absolute.replace(/\\/g, "/") : absolute;
+    const normalizedPath = sep === "\\" ? absolute.replace(/\\/g, "/") : absolute;
     return regexes.some(regex => regex.test(normalizedPath));
   };
 }
 
-function makeMatchers({include, exclude, insensitive}: RRDirOpts) {
-  return {
-    includeMatcher: createMatcher(include || [], insensitive || false),
-    excludeMatcher: createMatcher(exclude || [], insensitive || false),
-  } as {
-    includeMatcher: Matcher,
-    excludeMatcher: Matcher,
-  };
-}
-
-function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, opts: RRDirOpts, internalOpts: InternalOpts} {
-  opts = {...defaultOpts, ...opts};
-  const {includeMatcher, excludeMatcher} = makeMatchers(opts);
+function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts: InternalOpts} {
   if (typeof dir === "string" && /[/\\]$/.test(dir)) {
     dir = dir.substring(0, dir.length - 1) as T;
   }
-  const encoding = getEncoding(dir);
-  return {dir, opts, internalOpts: {
+  const encoding: Encoding = dir instanceof Uint8Array ? "buffer" : "utf8";
+  const insensitive = opts.insensitive || false;
+  const includeMatcher = createMatcher(opts.include || [], insensitive);
+  const excludeMatcher = createMatcher(opts.exclude || [], insensitive);
+  return {dir, internalOpts: {
     includeMatcher,
     excludeMatcher,
     hasMatcher: Boolean(excludeMatcher || includeMatcher),
@@ -164,101 +143,73 @@ function getStringPath(path: Dir, encoding: Encoding): string {
 
 export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): AsyncGenerator<Entry<T>> {
   const init = initOpts(dir, opts);
-  const {hasMatcher, encoding, followSymlinks, needStats, strict, readdirOpts} = init.internalOpts;
+  const {includeMatcher, excludeMatcher, hasMatcher, encoding, followSymlinks, needStats, strict, readdirOpts} = init.internalOpts;
   dir = init.dir;
 
-  // Fast path: BFS with parallel reads per level avoids recursive yield*
-  // overhead and exploits I/O concurrency via Promise.all.
-  if (!hasMatcher && !followSymlinks && !needStats) {
-    let currentLevel: Array<T> = [dir];
-    while (currentLevel.length > 0) {
-      const reads = await Promise.all(currentLevel.map(d =>
-        readdir(d, readdirOpts).then(
-          dirents => ({dir: d, dirents: dirents as unknown as Array<Dirent<T>>, err: undefined as unknown}),
-          err => ({dir: d, dirents: undefined as unknown as Array<Dirent<T>>, err}),
-        )
-      ));
-      const nextLevel: Array<T> = [];
-      for (const {dir: d, dirents, err} of reads) {
-        if (err) {
-          if (strict) throw err;
-          yield {path: d, err};
-          continue;
-        }
-        for (const dirent of dirents) {
-          const path = makePath(dirent, d, encoding);
-          const isDir = dirent.isDirectory();
-          yield {path, directory: isDir, symlink: dirent.isSymbolicLink()};
-          if (isDir) nextLevel.push(path);
-        }
+  // BFS with parallel reads per level exploits I/O concurrency via Promise.all.
+  let currentLevel: Array<T> = [dir];
+  while (currentLevel.length > 0) {
+    const reads = await Promise.all(currentLevel.map(d =>
+      readdir(d, readdirOpts).then(
+        dirents => ({dir: d, dirents: dirents as unknown as Array<Dirent<T>>, err: undefined as unknown}),
+        err => ({dir: d, dirents: undefined as unknown as Array<Dirent<T>>, err}),
+      )
+    ));
+    const nextLevel: Array<T> = [];
+    for (const {dir: d, dirents, err} of reads) {
+      if (err) {
+        if (strict) throw err;
+        yield {path: d, err};
+        continue;
       }
-      currentLevel = nextLevel;
-    }
-    return;
-  }
+      for (const dirent of dirents) {
+        const path = makePath(dirent, d, encoding);
 
-  // Slow path: recursive yield* with full feature support
-  yield* rrdirInner(dir, init.opts, init.internalOpts);
-}
-
-async function* rrdirInner<T extends Dir>(dir: T, opts: RRDirOpts, internalOpts: InternalOpts): AsyncGenerator<Entry<T>> {
-  const {includeMatcher, excludeMatcher, hasMatcher, encoding, followSymlinks, needStats, strict, readdirOpts} = internalOpts;
-
-  let dirents: Array<Dirent<T>> = [];
-  try {
-    dirents = await readdir(dir, readdirOpts) as unknown as Array<Dirent<T>>;
-  } catch (err) {
-    if (strict) throw err;
-    yield {path: dir, err};
-  }
-  if (!dirents.length) return;
-
-  for (const dirent of dirents) {
-    const path = makePath<T>(dirent, dir, encoding);
-
-    let isIncluded = true;
-    if (hasMatcher) {
-      const stringPath = getStringPath(path, encoding);
-      if (excludeMatcher?.(stringPath)) continue;
-      isIncluded = !includeMatcher || includeMatcher(stringPath);
-    }
-
-    const isDir = dirent.isDirectory();
-    const isSym = dirent.isSymbolicLink();
-    const isFollowedSym = followSymlinks && isSym;
-    let stats: Stats | undefined;
-
-    if (isIncluded) {
-      if (needStats || isFollowedSym) {
-        try {
-          stats = await (followSymlinks ? stat : lstat)(path);
-        } catch (err) {
-          if (strict) throw err;
-          yield {path, err};
+        let isIncluded = true;
+        if (hasMatcher) {
+          const stringPath = getStringPath(path, encoding);
+          if (excludeMatcher?.(stringPath)) continue;
+          isIncluded = !includeMatcher || includeMatcher(stringPath);
         }
+
+        const isDir = dirent.isDirectory();
+        const isSym = dirent.isSymbolicLink();
+        const isFollowedSym = followSymlinks && isSym;
+        let stats: Stats | undefined;
+
+        if (isIncluded) {
+          if (needStats || isFollowedSym) {
+            try {
+              stats = await (followSymlinks ? stat : lstat)(path);
+            } catch (err) {
+              if (strict) throw err;
+              yield {path, err};
+            }
+          }
+          yield build(path, isDir, isSym, stats, needStats);
+        }
+
+        let recurse = isDir;
+        if (isFollowedSym) {
+          if (!stats) try { stats = await stat(path); } catch {}
+          recurse = Boolean(stats?.isDirectory());
+        }
+
+        if (recurse) nextLevel.push(path);
       }
-
-      yield build(path, isDir, isSym, stats, needStats);
     }
-
-    let recurse = isDir;
-    if (isFollowedSym) {
-      if (!stats) try { stats = await stat(path); } catch {}
-      recurse = Boolean(stats?.isDirectory());
-    }
-
-    if (recurse) yield* rrdirInner(path, opts, internalOpts);
+    currentLevel = nextLevel;
   }
 }
 
 export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Promise<Array<Entry<T>>> {
   const init = initOpts(dir, opts);
   const results: Array<Entry<T>> = [];
-  await rrdirAsyncInner(init.dir, init.opts, init.internalOpts, results);
+  await rrdirAsyncInner(init.dir, init.internalOpts, results);
   return results;
 }
 
-async function rrdirAsyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalOpts: InternalOpts, results: Array<Entry<T>>): Promise<void> {
+async function rrdirAsyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, results: Array<Entry<T>>): Promise<void> {
   const {includeMatcher, excludeMatcher, hasMatcher, encoding, followSymlinks, needStats, strict, readdirOpts} = internalOpts;
 
   let dirents: Array<Dirent<T>> = [];
@@ -309,18 +260,18 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalO
   }
 
   if (pendingDirs.length) {
-    await Promise.all(pendingDirs.map(p => rrdirAsyncInner(p, opts, internalOpts, results)));
+    await Promise.all(pendingDirs.map(p => rrdirAsyncInner(p, internalOpts, results)));
   }
 }
 
 export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Array<Entry<T>> {
   const init = initOpts(dir, opts);
   const results: Array<Entry<T>> = [];
-  rrdirSyncInner(init.dir, init.opts, init.internalOpts, results);
+  rrdirSyncInner(init.dir, init.internalOpts, results);
   return results;
 }
 
-function rrdirSyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalOpts: InternalOpts, results: Array<Entry<T>>): void {
+function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, results: Array<Entry<T>>): void {
   const {includeMatcher, excludeMatcher, hasMatcher, encoding, followSymlinks, needStats, strict, readdirOpts} = internalOpts;
 
   let dirents: Array<Dirent<T>> = [];
@@ -365,6 +316,6 @@ function rrdirSyncInner<T extends Dir>(dir: T, opts: RRDirOpts, internalOpts: In
       recurse = Boolean(stats?.isDirectory());
     }
 
-    if (recurse) rrdirSyncInner(path, opts, internalOpts, results);
+    if (recurse) rrdirSyncInner(path, internalOpts, results);
   }
 }

@@ -33,7 +33,7 @@ $(DIST_FILES): $(SOURCE_FILES) pnpm-lock.yaml package.json tsdown.config.ts
 	pnpm exec tsdown
 
 .PHONY: bench
-bench: node_modules
+bench: build
 	node bench.ts
 
 .PHONY: update
