@@ -167,26 +167,32 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
   const {hasMatcher, encoding, followSymlinks, needStats, strict, readdirOpts} = init.internalOpts;
   dir = init.dir;
 
-  // Fast path: stack-based iteration avoids recursive yield* overhead.
-  // Each yield crosses 1 generator boundary instead of O(depth).
+  // Fast path: BFS with parallel reads per level avoids recursive yield*
+  // overhead and exploits I/O concurrency via Promise.all.
   if (!hasMatcher && !followSymlinks && !needStats) {
-    const stack: Array<T> = [dir];
-    while (stack.length > 0) {
-      const currentDir = stack.pop() as T;
-      let dirents: Array<Dirent<T>>;
-      try {
-        dirents = await readdir(currentDir, readdirOpts) as unknown as Array<Dirent<T>>;
-      } catch (err) {
-        if (strict) throw err;
-        yield {path: currentDir, err};
-        continue;
+    let currentLevel: Array<T> = [dir];
+    while (currentLevel.length > 0) {
+      const reads = await Promise.all(currentLevel.map(d =>
+        readdir(d, readdirOpts).then(
+          dirents => ({dir: d, dirents: dirents as unknown as Array<Dirent<T>>, err: undefined as unknown}),
+          err => ({dir: d, dirents: undefined as unknown as Array<Dirent<T>>, err}),
+        )
+      ));
+      const nextLevel: Array<T> = [];
+      for (const {dir: d, dirents, err} of reads) {
+        if (err) {
+          if (strict) throw err;
+          yield {path: d, err};
+          continue;
+        }
+        for (const dirent of dirents) {
+          const path = makePath(dirent, d, encoding);
+          const isDir = dirent.isDirectory();
+          yield {path, directory: isDir, symlink: dirent.isSymbolicLink()};
+          if (isDir) nextLevel.push(path);
+        }
       }
-      for (const dirent of dirents) {
-        const path = makePath(dirent, currentDir, encoding);
-        const isDir = dirent.isDirectory();
-        yield {path, directory: isDir, symlink: dirent.isSymbolicLink()};
-        if (isDir) stack.push(path);
-      }
+      currentLevel = nextLevel;
     }
     return;
   }
