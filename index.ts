@@ -58,7 +58,7 @@ function makePath<T extends Dir>({name}: Dirent<T>, dir: T, encoding: Encoding):
     result.set(nameBuf, dirBuf.length + sepUint8Array.length);
     return result as T;
   } else {
-    return dir === "." ? name : `${dir as string}${sep}${name}` as T;
+    return (dir === "." ? name : String(dir) + sep + String(name)) as T;
   }
 }
 
