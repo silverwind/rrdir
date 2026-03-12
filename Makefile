@@ -9,12 +9,12 @@ node_modules: pnpm-lock.yaml
 deps: node_modules
 
 .PHONY: lint
-lint: node_modules
+lint: node_modules build
 	pnpm exec eslint-silverwind --color .
 	pnpm exec tsgo
 
 .PHONY: lint-fix
-lint-fix: node_modules
+lint-fix: node_modules build
 	pnpm exec eslint-silverwind --color . --fix
 	pnpm exec tsgo
 
