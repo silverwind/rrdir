@@ -42,12 +42,33 @@ console.info(`Creating tree: ${totalFiles} files, ${totalDirs} dirs`);
 createTree(tmpDir, 0);
 
 try {
+  const {fdir} = await import("fdir");
+
+  console.info("--- async ---");
   await bench("rrdirAsync", () => rrdirAsync(tmpDir));
-  await bench("rrdirAsync + exclude", () => rrdirAsync(tmpDir, {exclude: ["**/dir0/**"]}));
-  await bench("rrdirAsync + stats", () => rrdirAsync(tmpDir, {stats: true}));
+  await bench("fdir async", () => new fdir().withRelativePaths().withDirs().crawl(tmpDir).withPromise());
+
+  console.info("--- sync ---");
   await bench("rrdirSync", () => rrdirSync(tmpDir));
+  await bench("fdir sync", () => new fdir().withRelativePaths().withDirs().crawl(tmpDir).sync());
+
+  console.info("--- async + glob filter (*.txt) ---");
+  await bench("rrdirAsync + include", () => rrdirAsync(tmpDir, {include: ["**/*.txt"]}));
+  await bench("fdir async + glob", () => new fdir().withRelativePaths().withDirs().glob("**/*.txt").crawl(tmpDir).withPromise());
+
+  console.info("--- sync + glob filter (*.txt) ---");
+  await bench("rrdirSync + include", () => rrdirSync(tmpDir, {include: ["**/*.txt"]}));
+  await bench("fdir sync + glob", () => new fdir().withRelativePaths().withDirs().glob("**/*.txt").crawl(tmpDir).sync());
+
+  console.info("--- async + exclude (dir0) ---");
+  await bench("rrdirAsync + exclude", () => rrdirAsync(tmpDir, {exclude: ["**/dir0/**"]}));
+  await bench("fdir async + exclude", () => new fdir().withRelativePaths().withDirs().exclude((_name, dirPath) => dirPath.includes("/dir0")).crawl(tmpDir).withPromise());
+
+  console.info("--- sync + exclude (dir0) ---");
   await bench("rrdirSync + exclude", () => rrdirSync(tmpDir, {exclude: ["**/dir0/**"]}));
-  await bench("rrdirSync + stats", () => rrdirSync(tmpDir, {stats: true}));
+  await bench("fdir sync + exclude", () => new fdir().withRelativePaths().withDirs().exclude((_name, dirPath) => dirPath.includes("/dir0")).crawl(tmpDir).sync());
+
+  console.info("--- async iterator ---");
   await bench("rrdir (iterator)", async () => {
     let count = 0;
     for await (const _entry of rrdir(tmpDir)) count += _entry ? 1 : 0;
@@ -59,14 +80,9 @@ try {
     return count;
   });
 
-  try {
-    const {fdir} = await import("fdir");
-    console.info("");
-    await bench("fdir async", () => new fdir().withRelativePaths().crawl(tmpDir).withPromise());
-    await bench("fdir sync", () => new fdir().withRelativePaths().crawl(tmpDir).sync());
-    await bench("fdir async + dirs", () => new fdir().withRelativePaths().withDirs().crawl(tmpDir).withPromise());
-    await bench("fdir sync + dirs", () => new fdir().withRelativePaths().withDirs().crawl(tmpDir).sync());
-  } catch {}
+  console.info("--- stats ---");
+  await bench("rrdirAsync + stats", () => rrdirAsync(tmpDir, {stats: true}));
+  await bench("rrdirSync + stats", () => rrdirSync(tmpDir, {stats: true}));
 } finally {
   rmSync(tmpDir, {recursive: true});
 }
