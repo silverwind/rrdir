@@ -9,15 +9,24 @@ const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
 const sepUint8Array = toUint8Array(sep);
 
+/** The internal encoding used for path operations. */
 export type Encoding = "utf8" | "buffer";
+/** A directory path, either as a string or a Buffer for raw byte paths. */
 export type Dir = string | Buffer;
 
+/** Options for `rrdir`, `rrdirAsync`, and `rrdirSync`. */
 export type RRDirOpts = {
+  /** Whether to throw immediately when reading an entry fails. Default: `false`. */
   strict?: boolean,
+  /** Whether to include `entry.stats`. Will reduce performance. Default: `false`. */
   stats?: boolean,
+  /** Whether to follow symlinks for both recursion and `stat` calls. Default: `false`. */
   followSymlinks?: boolean,
+  /** Path globs to include, e.g. `["**.map"]`. Default: `undefined`. */
   include?: Array<string>,
+  /** Path globs to exclude, e.g. `["**.js"]`. Default: `undefined`. */
   exclude?: Array<string>,
+  /** Whether `include` and `exclude` match case-insensitively. Default: `false`. */
   insensitive?: boolean,
 };
 
@@ -34,6 +43,7 @@ type InternalOpts = {
   readdirOpts: any,
 };
 
+/** A directory entry returned by `rrdir`, `rrdirAsync`, and `rrdirSync`. */
 export type Entry<T = Dir> = {
   /** The path to the entry, will be relative if `dir` is given relative. If `dir` is a `Uint8Array`, this will be too. Always present. */
   path: T,
@@ -138,6 +148,7 @@ function getStringPath(path: Dir, encoding: Encoding): string {
   return encoding === "buffer" ? toString(path as Buffer) : path as string;
 }
 
+/** Recursively read a directory via async iterator. Memory usage is `O(1)`. */
 export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): AsyncGenerator<Entry<T>> {
   const init = initOpts(dir, opts);
   const {includeMatcher, excludeMatcher, hasMatcher, encoding, followSymlinks, needStats, strict, readdirOpts} = init.internalOpts;
@@ -199,6 +210,7 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
   }
 }
 
+/** Recursively read a directory, returning all entries as an array. Memory usage is `O(n)`. */
 export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Promise<Array<Entry<T>>> {
   const init = initOpts(dir, opts);
   const results: Array<Entry<T>> = [];
@@ -261,6 +273,7 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts
   }
 }
 
+/** Synchronously recursively read a directory, returning all entries as an array. Memory usage is `O(n)`. */
 export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Array<Entry<T>> {
   const init = initOpts(dir, opts);
   const results: Array<Entry<T>> = [];
