@@ -58,18 +58,15 @@ function makePath<T extends Dir>({name}: Dirent<T>, dir: T, encoding: Encoding):
     result.set(nameBuf, dirBuf.length + sepUint8Array.length);
     return result as T;
   } else {
-    return (dir === "." ? name : String(dir) + sep + String(name)) as T;
+    return (dir === "." ? name : (dir as string) + sep + (name as string)) as T;
   }
 }
 
 function build<T extends Dir>(path: T, isDir: boolean, isSym: boolean, stats: Stats | undefined, needStats: boolean): Entry<T> {
-  const entry: Entry<T> = {
-    path,
-    directory: stats ? stats.isDirectory() : isDir,
-    symlink: stats ? stats.isSymbolicLink() : isSym,
-  };
-  if (needStats) entry.stats = stats;
-  return entry;
+  const directory = stats ? stats.isDirectory() : isDir;
+  const symlink = stats ? stats.isSymbolicLink() : isSym;
+  if (needStats) return {path, directory, symlink, stats};
+  return {path, directory, symlink};
 }
 
 // Convert a glob pattern to a regular expression
@@ -168,8 +165,8 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
         let isIncluded = true;
         if (hasMatcher) {
           const stringPath = getStringPath(path, encoding);
-          if (excludeMatcher?.(stringPath)) continue;
-          isIncluded = !includeMatcher || includeMatcher(stringPath);
+          if (excludeMatcher !== null && excludeMatcher(stringPath)) continue;
+          isIncluded = includeMatcher === null || includeMatcher(stringPath);
         }
 
         const isDir = dirent.isDirectory();
@@ -228,8 +225,8 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts
     let isIncluded = true;
     if (hasMatcher) {
       const stringPath = getStringPath(path, encoding);
-      if (excludeMatcher?.(stringPath)) continue;
-      isIncluded = !includeMatcher || includeMatcher(stringPath);
+      if (excludeMatcher !== null && excludeMatcher(stringPath)) continue;
+      isIncluded = includeMatcher === null || includeMatcher(stringPath);
     }
 
     const isDir = dirent.isDirectory();
@@ -273,49 +270,54 @@ export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Array<En
 
 function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, results: Array<Entry<T>>): void {
   const {includeMatcher, excludeMatcher, hasMatcher, encoding, followSymlinks, needStats, strict, readdirOpts} = internalOpts;
+  const stack: Array<T> = [dir];
 
-  let dirents: Array<Dirent<T>> = [];
-  try {
-    dirents = readdirSync(dir, readdirOpts) as unknown as Array<Dirent<T>>;
-  } catch (err) {
-    if (strict) throw err;
-    results.push({path: dir, err});
-  }
-  if (!dirents.length) return;
-
-  for (const dirent of dirents) {
-    const path = makePath(dirent, dir, encoding);
-
-    let isIncluded = true;
-    if (hasMatcher) {
-      const stringPath = getStringPath(path, encoding);
-      if (excludeMatcher?.(stringPath)) continue;
-      isIncluded = !includeMatcher || includeMatcher(stringPath);
+  while (stack.length > 0) {
+    const currentDir = stack.pop()!;
+    let dirents: Array<Dirent<T>> = [];
+    try {
+      dirents = readdirSync(currentDir, readdirOpts) as unknown as Array<Dirent<T>>;
+    } catch (err) {
+      if (strict) throw err;
+      results.push({path: currentDir, err});
+      continue;
     }
+    if (!dirents.length) continue;
 
-    const isDir = dirent.isDirectory();
-    const isSym = dirent.isSymbolicLink();
-    const isFollowedSym = followSymlinks && isSym;
-    let stats: Stats | undefined;
+    for (const dirent of dirents) {
+      const path = makePath(dirent, currentDir, encoding);
 
-    if (isIncluded) {
-      if (needStats || isFollowedSym) {
-        try {
-          stats = (followSymlinks ? statSync : lstatSync)(path);
-        } catch (err) {
-          if (strict) throw err;
-          results.push({path, err});
-        }
+      let isIncluded = true;
+      if (hasMatcher) {
+        const stringPath = getStringPath(path, encoding);
+        if (excludeMatcher !== null && excludeMatcher(stringPath)) continue;
+        isIncluded = includeMatcher === null || includeMatcher(stringPath);
       }
-      results.push(build(path, isDir, isSym, stats, needStats));
-    }
 
-    let recurse = isDir;
-    if (isFollowedSym) {
-      if (!stats) try { stats = statSync(path); } catch {}
-      recurse = Boolean(stats?.isDirectory());
-    }
+      const isDir = dirent.isDirectory();
+      const isSym = dirent.isSymbolicLink();
+      const isFollowedSym = followSymlinks && isSym;
+      let stats: Stats | undefined;
 
-    if (recurse) rrdirSyncInner(path, internalOpts, results);
+      if (isIncluded) {
+        if (needStats || isFollowedSym) {
+          try {
+            stats = (followSymlinks ? statSync : lstatSync)(path);
+          } catch (err) {
+            if (strict) throw err;
+            results.push({path, err});
+          }
+        }
+        results.push(build(path, isDir, isSym, stats, needStats));
+      }
+
+      let recurse = isDir;
+      if (isFollowedSym) {
+        if (!stats) try { stats = statSync(path); } catch {}
+        recurse = Boolean(stats?.isDirectory());
+      }
+
+      if (recurse) stack.push(path);
+    }
   }
 }
