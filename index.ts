@@ -100,7 +100,7 @@ function globToRegex(pattern: string, insensitive: boolean): RegExp {
   let regex = pattern.replace(/\*\*|\*|[.+?^${}()|[\]\\]/g, m => {
     if (m === "**") return ".*";
     if (m === "*") return "[^/]*";
-    return "\\" + m;
+    return `\\${m}`;
   });
 
   if (endsWithDoubleStar) {
