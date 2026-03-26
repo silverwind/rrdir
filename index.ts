@@ -93,26 +93,18 @@ function build<T extends Dir>(path: T, isDir: boolean, isSym: boolean, stats: St
 
 // Convert a glob pattern to a regular expression
 function globToRegex(pattern: string, insensitive: boolean): RegExp {
-  // Normalize pattern to use forward slashes for simpler matching
   pattern = pattern.replace(/\\/g, "/");
-
-  // Special handling for patterns ending with /** to also match the directory itself
   const endsWithDoubleStar = pattern.endsWith("/**");
 
-  // Escape special regex characters except * and /
-  let regex = pattern
-    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-    // Replace ** with placeholder
-    .replace(/\*\*/g, "__DOUBLESTAR__")
-    // Replace * to match anything except /
-    .replace(/\*/g, "[^/]*")
-    // Restore ** to match anything including /
-    .replace(/__DOUBLESTAR__/g, ".*");
+  // Single-pass: match ** before *, escape regex special chars
+  let regex = pattern.replace(/\*\*|\*|[.+?^${}()|[\]\\]/g, m => {
+    if (m === "**") return ".*";
+    if (m === "*") return "[^/]*";
+    return "\\" + m;
+  });
 
   if (endsWithDoubleStar) {
-    // Remove trailing /.*
     regex = regex.slice(0, -3);
-    // Make trailing / and anything after it optional
     regex = `^${regex}(?:/.*)?$`;
   } else {
     regex = `^${regex}$`;
@@ -127,17 +119,10 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
 
   const regexes = patterns.map(pattern => globToRegex(pattern, insensitive));
   const needsNormalize = sep === "\\";
-
-  if (pathIsAbsolute) {
-    return (path: string) => {
-      const normalizedPath = needsNormalize ? path.replace(/\\/g, "/") : path;
-      return regexes.some(regex => regex.test(normalizedPath));
-    };
-  }
-  const cwdPrefix = resolve(".") + sep;
+  const prefix = pathIsAbsolute ? "" : resolve(".") + sep;
   return (path: string) => {
-    const normalizedPath = needsNormalize ? (cwdPrefix + path).replace(/\\/g, "/") : cwdPrefix + path;
-    return regexes.some(regex => regex.test(normalizedPath));
+    const p = prefix ? prefix + path : path;
+    return regexes.some(regex => regex.test(needsNormalize ? p.replace(/\\/g, "/") : p));
   };
 }
 
@@ -148,8 +133,8 @@ function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts
   const encoding: Encoding = dir instanceof Uint8Array ? "buffer" : "utf8";
   const insensitive = opts.insensitive || false;
   const pathIsAbsolute = typeof dir === "string" ? isAbsolute(dir) : false;
-  const includeMatcher = createMatcher(opts.include || [], insensitive, pathIsAbsolute);
-  const excludeMatcher = createMatcher(opts.exclude || [], insensitive, pathIsAbsolute);
+  const includeMatcher = createMatcher(opts.include, insensitive, pathIsAbsolute);
+  const excludeMatcher = createMatcher(opts.exclude, insensitive, pathIsAbsolute);
   const followSymlinks = Boolean(opts.followSymlinks);
   return {dir, internalOpts: {
     includeMatcher,
