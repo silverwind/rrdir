@@ -71,12 +71,12 @@ try {
   console.info("--- async iterator ---");
   await bench("rrdir (iterator)", async () => {
     let count = 0;
-    for await (const _entry of rrdir(tmpDir)) count += _entry ? 1 : 0;
+    for await (const entry of rrdir(tmpDir)) count += entry ? 1 : 0;
     return count;
   });
   await bench("rrdir (iterator) + exclude", async () => {
     let count = 0;
-    for await (const _entry of rrdir(tmpDir, {exclude: ["**/dir0/**"]})) count += _entry ? 1 : 0;
+    for await (const entry of rrdir(tmpDir, {exclude: ["**/dir0/**"]})) count += entry ? 1 : 0;
     return count;
   });
 

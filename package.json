@@ -23,7 +23,6 @@
     "eslint": "10.1.0",
     "eslint-config-silverwind": "127.1.4",
     "fdir": "6.5.0",
-    "jest-extended": "7.0.0",
     "tsdown": "0.21.5",
     "tsdown-config-silverwind": "2.0.2",
     "typescript": "5.9.3",

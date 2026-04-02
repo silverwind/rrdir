@@ -3,14 +3,12 @@ import {readdirSync, statSync, lstatSync} from "node:fs";
 import {sep, resolve, isAbsolute} from "node:path";
 import type {Stats, Dirent} from "node:fs";
 
-const encoder = new TextEncoder();
-const toUint8Array = encoder.encode.bind(encoder);
 const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
-const sepUint8Array = toUint8Array(sep);
+const sepUint8Array = new TextEncoder().encode(sep);
 
 /** The internal encoding used for path operations. */
-export type Encoding = "utf8" | "buffer";
+type Encoding = "utf8" | "buffer";
 /** A directory path, either as a string or a Buffer for raw byte paths. */
 export type Dir = string | Buffer;
 
