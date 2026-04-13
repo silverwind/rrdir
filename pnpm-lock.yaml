@@ -23,6 +23,9 @@ importers:
       fdir:
         specifier: 6.5.0
         version: 6.5.0(picomatch@4.0.4)
+      jest-extended:
+        specifier: 7.0.0
+        version: 7.0.0(typescript@5.9.3)
       tsdown:
         specifier: 0.21.7
         version: 0.21.7(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@typescript/native-preview@7.0.0-dev.20260413.1)(typescript@5.9.3)

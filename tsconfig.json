@@ -4,6 +4,7 @@
     "types": [
       "node",
       "vitest/globals",
+      "jest-extended",
     ],
   },
 }
