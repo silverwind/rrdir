@@ -189,7 +189,7 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
             stats = await statFn(path);
           } catch (err) {
             if (strict) throw err;
-            if (isIncluded) yield {path, err};
+            if (isIncluded) yield {path, err: err as Error};
           }
         }
 
@@ -217,7 +217,7 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts
     dirents = await readdir(dir, readdirOpts) as unknown as Array<Dirent<T>>;
   } catch (err) {
     if (strict) throw err;
-    results.push({path: dir, err});
+    results.push({path: dir, err: err as Error});
   }
   if (!dirents.length) return;
 
@@ -243,7 +243,7 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts
         stats = await statFn(path);
       } catch (err) {
         if (strict) throw err;
-        if (isIncluded) results.push({path, err});
+        if (isIncluded) results.push({path, err: err as Error});
       }
     }
 
@@ -275,7 +275,7 @@ function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, resul
       dirents = readdirSync(currentDir, readdirOpts) as unknown as Array<Dirent<T>>;
     } catch (err) {
       if (strict) throw err;
-      results.push({path: currentDir, err});
+      results.push({path: currentDir, err: err as Error});
       continue;
     }
     if (!dirents.length) continue;
@@ -301,7 +301,7 @@ function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, resul
           stats = statSyncFn(path);
         } catch (err) {
           if (strict) throw err;
-          if (isIncluded) results.push({path, err});
+          if (isIncluded) results.push({path, err: err as Error});
         }
       }
 
