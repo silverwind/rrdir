@@ -2,6 +2,17 @@
   "name": "rrdir",
   "version": "14.2.9",
   "description": "Recursive directory reader with a delightful API",
+  "keywords": [
+    "recursive",
+    "directory",
+    "readdir",
+    "walk",
+    "fs",
+    "filesystem",
+    "iterator",
+    "async",
+    "glob"
+  ],
   "author": "silverwind <me@silverwind.io>",
   "repository": "silverwind/rrdir",
   "license": "BSD-2-Clause",
