@@ -52,7 +52,6 @@ afterAll(async () => {
 
 function sort<T extends Array<Entry>>(entries: T): T {
   entries.sort((a, b) => {
-    if (!("path" in a) || !("path" in b)) return 0;
     const aString = a.path instanceof Uint8Array ? toString(a.path) : a.path;
     const bString = b.path instanceof Uint8Array ? toString(b.path) : b.path;
     return aString.localeCompare(bString);

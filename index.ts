@@ -58,7 +58,7 @@ export type Entry<T = Dir> = {
 
 function makeDirPrefix(dir: Dir, encoding: Encoding): string | Uint8Array {
   if (encoding === "buffer") {
-    const dirBuf = dir as unknown as Uint8Array;
+    const dirBuf = dir as Uint8Array;
     if (dirBuf.length === 1 && dirBuf[0] === 0x2E) return dirBuf.subarray(0, 0);
     const result = new Uint8Array(dirBuf.length + sepUint8Array.length);
     result.set(dirBuf, 0);
@@ -88,7 +88,6 @@ function build<T extends Dir>(path: T, isDir: boolean, isSym: boolean, stats: St
   return {path, directory, symlink};
 }
 
-// Convert a glob pattern to a regular expression
 function globToRegex(pattern: string, insensitive: boolean): RegExp {
   pattern = pattern.replace(/\\/g, "/");
   const endsWithDoubleStar = pattern.endsWith("/**");
@@ -110,7 +109,6 @@ function globToRegex(pattern: string, insensitive: boolean): RegExp {
   return new RegExp(regex, insensitive ? "i" : "");
 }
 
-// Create a matcher function from an array of glob patterns
 function createMatcher(patterns: Array<string> | undefined, insensitive: boolean, pathIsAbsolute: boolean): Matcher {
   if (!patterns?.length) return null;
 
