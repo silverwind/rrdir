@@ -122,12 +122,16 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
 }
 
 function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts: InternalOpts} {
-  if (typeof dir === "string" && /[/\\]$/.test(dir)) {
-    dir = dir.substring(0, dir.length - 1) as T;
+  if (typeof dir === "string") {
+    if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1) as T;
+  } else {
+    const buf = dir as Uint8Array;
+    const last = buf[buf.length - 1];
+    if (last === 0x2F || last === 0x5C) dir = buf.subarray(0, -1) as T;
   }
   const encoding: Encoding = dir instanceof Uint8Array ? "buffer" : "utf8";
   const insensitive = opts.insensitive || false;
-  const pathIsAbsolute = typeof dir === "string" ? isAbsolute(dir) : false;
+  const pathIsAbsolute = typeof dir === "string" ? isAbsolute(dir) : isAbsolute(toString(dir));
   const includeMatcher = createMatcher(opts.include, insensitive, pathIsAbsolute);
   const excludeMatcher = createMatcher(opts.exclude, insensitive, pathIsAbsolute);
   const followSymlinks = Boolean(opts.followSymlinks);
@@ -181,17 +185,18 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
         const isSym = dirent.isSymbolicLink();
         const isFollowedSym = followSymlinks && isSym;
         let stats: Stats | undefined;
+        let errEntry: Entry<T> | undefined;
 
         if (isFollowedSym || (isIncluded && needStats)) {
           try {
             stats = await statFn(path);
           } catch (err) {
             if (strict) throw err;
-            if (isIncluded) yield {path, err: err as Error};
+            if (isIncluded) errEntry = {path, err: err as Error};
           }
         }
 
-        if (isIncluded) yield build(path, isDir, isSym, stats, needStats);
+        if (isIncluded) yield errEntry ?? build(path, isDir, isSym, stats, needStats);
         if (isFollowedSym ? stats?.isDirectory() : isDir) nextLevel.push(path);
       }
     }
@@ -235,17 +240,18 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts
     const isSym = dirent.isSymbolicLink();
     const isFollowedSym = followSymlinks && isSym;
     let stats: Stats | undefined;
+    let errEntry: Entry<T> | undefined;
 
     if (isFollowedSym || (isIncluded && needStats)) {
       try {
         stats = await statFn(path);
       } catch (err) {
         if (strict) throw err;
-        if (isIncluded) results.push({path, err: err as Error});
+        if (isIncluded) errEntry = {path, err: err as Error};
       }
     }
 
-    if (isIncluded) results.push(build(path, isDir, isSym, stats, needStats));
+    if (isIncluded) results.push(errEntry ?? build(path, isDir, isSym, stats, needStats));
     if (isFollowedSym ? stats?.isDirectory() : isDir) pendingDirs.push(path);
   }
 
@@ -293,17 +299,18 @@ function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, resul
       const isSym = dirent.isSymbolicLink();
       const isFollowedSym = followSymlinks && isSym;
       let stats: Stats | undefined;
+      let errEntry: Entry<T> | undefined;
 
       if (isFollowedSym || (isIncluded && needStats)) {
         try {
           stats = statSyncFn(path);
         } catch (err) {
           if (strict) throw err;
-          if (isIncluded) results.push({path, err: err as Error});
+          if (isIncluded) errEntry = {path, err: err as Error};
         }
       }
 
-      if (isIncluded) results.push(build(path, isDir, isSym, stats, needStats));
+      if (isIncluded) results.push(errEntry ?? build(path, isDir, isSym, stats, needStats));
       if (isFollowedSym ? stats?.isDirectory() : isDir) stack.push(path);
     }
   }

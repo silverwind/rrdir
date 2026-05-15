@@ -264,3 +264,46 @@ if (!skipWeird) {
     expect(uint8ArrayContains(results[0].path as Uint8Array, weirdUint8Array)).toEqual(true);
   }));
 }
+
+test.skipIf(isWindows)("stat error yields single entry per path", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "rrdir-stat-"));
+  try {
+    await symlink(join(dir, "no-such-target"), join(dir, "broken"));
+    const opts = {followSymlinks: true, stats: true};
+
+    const iter: Array<Entry> = [];
+    for await (const result of rrdir(dir, opts)) iter.push(result);
+    const asyncResults = await rrdirAsync(dir, opts);
+    const syncResults = rrdirSync(dir, opts);
+
+    for (const results of [iter, asyncResults, syncResults]) {
+      expect(results.length).toEqual(1);
+      expect(results[0].err).toBeTruthy();
+      expect(results[0].directory).toBeUndefined();
+      expect(results[0].symlink).toBeUndefined();
+      expect(results[0].stats).toBeUndefined();
+    }
+  } finally {
+    await rm(dir, {recursive: true});
+  }
+});
+
+test.skipIf(isWindows || isBun)("Uint8Array absolute include", () => makeTest(toUint8Array("test") as any, {include: [join(testDir, "**/f*")]}, (results: Array<Entry>) => {
+  const names = results.map(r => toString(r.path as Uint8Array)).sort();
+  expect(names).toEqual([
+    join(testDir, "test/dir/file"),
+    join(testDir, "test/dir2/file"),
+    join(testDir, "test/file"),
+    join(testDir, "test/filesymlink"),
+  ].sort());
+}));
+
+test.skipIf(isBun)("Uint8Array trailing slash stripped", () => {
+  const dir = joinUint8Array(testDir, "test");
+  const dirSlash = Uint8Array.from([...dir, ...sepUint8Array]);
+
+  const noSlash = rrdirSync(dir as any).map(e => toString(e.path as Uint8Array)).sort();
+  const withSlash = rrdirSync(dirSlash as any).map(e => toString(e.path as Uint8Array)).sort();
+
+  expect(withSlash).toEqual(noSlash);
+});
