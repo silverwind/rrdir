@@ -1,7 +1,13 @@
 import {readdir, stat, lstat} from "node:fs/promises";
 import {readdirSync, statSync, lstatSync} from "node:fs";
 import {sep, resolve, isAbsolute} from "node:path";
-import type {Stats, Dirent} from "node:fs";
+import type {Stats} from "node:fs";
+
+type DirentLike = {
+  name: string | Uint8Array,
+  isDirectory(): boolean,
+  isSymbolicLink(): boolean,
+};
 
 const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
@@ -9,8 +15,8 @@ const sepUint8Array = new TextEncoder().encode(sep);
 
 /** The internal encoding used for path operations. */
 type Encoding = "utf8" | "buffer";
-/** A directory path, either as a string or a Buffer for raw byte paths. */
-export type Dir = string | Buffer;
+/** A directory path, either as a string or a Uint8Array for raw byte paths. */
+export type Dir = string | Uint8Array;
 
 /** Options for `rrdir`, `rrdirAsync`, and `rrdirSync`. */
 export type RRDirOpts = {
@@ -58,11 +64,11 @@ export type Entry<T = Dir> = {
 
 function makeDirPrefix(dir: Dir, encoding: Encoding): string | Uint8Array {
   if (encoding === "buffer") {
-    const dirBuf = dir as Uint8Array;
-    if (dirBuf.length === 1 && dirBuf[0] === 0x2E) return dirBuf.subarray(0, 0);
-    const result = new Uint8Array(dirBuf.length + sepUint8Array.length);
-    result.set(dirBuf, 0);
-    result.set(sepUint8Array, dirBuf.length);
+    const dirBytes = dir as Uint8Array;
+    if (dirBytes.length === 1 && dirBytes[0] === 0x2E) return dirBytes.subarray(0, 0);
+    const result = new Uint8Array(dirBytes.length + sepUint8Array.length);
+    result.set(dirBytes, 0);
+    result.set(sepUint8Array, dirBytes.length);
     return result;
   }
   return (dir as string) === "." ? "" : (dir as string) + sep;
@@ -70,12 +76,12 @@ function makeDirPrefix(dir: Dir, encoding: Encoding): string | Uint8Array {
 
 function makePath<T extends Dir>(name: string | Uint8Array, prefix: string | Uint8Array, encoding: Encoding): T {
   if (encoding === "buffer") {
-    const prefixBuf = prefix as Uint8Array;
-    if (prefixBuf.length === 0) return name as T;
-    const nameBuf = name as Uint8Array;
-    const result = new Uint8Array(prefixBuf.length + nameBuf.length);
-    result.set(prefixBuf, 0);
-    result.set(nameBuf, prefixBuf.length);
+    const prefixBytes = prefix as Uint8Array;
+    if (prefixBytes.length === 0) return name as T;
+    const nameBytes = name as Uint8Array;
+    const result = new Uint8Array(prefixBytes.length + nameBytes.length);
+    result.set(prefixBytes, 0);
+    result.set(nameBytes, prefixBytes.length);
     return result as T;
   }
   return ((prefix as string) + (name as string)) as T;
@@ -125,9 +131,8 @@ function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts
   if (typeof dir === "string") {
     if (/[/\\]$/.test(dir)) dir = dir.substring(0, dir.length - 1) as T;
   } else {
-    const buf = dir as Uint8Array;
-    const last = buf[buf.length - 1];
-    if (last === 0x2F || last === 0x5C) dir = buf.subarray(0, -1) as T;
+    const last = dir[dir.length - 1];
+    if (last === 0x2F || last === 0x5C) dir = dir.subarray(0, -1) as T;
   }
   const encoding: Encoding = dir instanceof Uint8Array ? "buffer" : "utf8";
   const insensitive = opts.insensitive || false;
@@ -158,9 +163,9 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
   let currentLevel: Array<T> = [dir];
   while (currentLevel.length > 0) {
     const reads = await Promise.all(currentLevel.map(d =>
-      readdir(d, readdirOpts).then(
-        dirents => ({dir: d, dirents: dirents as unknown as Array<Dirent<T>>, err: undefined as unknown}),
-        err => ({dir: d, dirents: undefined as unknown as Array<Dirent<T>>, err}),
+      readdir(d as Buffer, readdirOpts).then(
+        dirents => ({dir: d, dirents: dirents as unknown as Array<DirentLike>, err: undefined as unknown}),
+        err => ({dir: d, dirents: undefined as unknown as Array<DirentLike>, err}),
       )
     ));
     const nextLevel: Array<T> = [];
@@ -176,7 +181,7 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
 
         let isIncluded = true;
         if (excludeMatcher || includeMatcher) {
-          const sp = encoding === "buffer" ? toString(path as Buffer) : path as string;
+          const sp = encoding === "buffer" ? toString(path as Uint8Array) : path as string;
           if (excludeMatcher?.(sp)) continue;
           if (includeMatcher) isIncluded = includeMatcher(sp);
         }
@@ -189,7 +194,7 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
 
         if (isFollowedSym || (isIncluded && needStats)) {
           try {
-            stats = await statFn(path);
+            stats = await statFn(path as Buffer);
           } catch (err) {
             if (strict) throw err;
             if (isIncluded) errEntry = {path, err: err as Error};
@@ -215,9 +220,9 @@ export async function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}): P
 async function rrdirAsyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, results: Array<Entry<T>>): Promise<void> {
   const {includeMatcher, excludeMatcher, encoding, followSymlinks, needStats, strict, readdirOpts, statFn} = internalOpts;
 
-  let dirents: Array<Dirent<T>> = [];
+  let dirents: Array<DirentLike> = [];
   try {
-    dirents = await readdir(dir, readdirOpts) as unknown as Array<Dirent<T>>;
+    dirents = await readdir(dir as Buffer, readdirOpts) as unknown as Array<DirentLike>;
   } catch (err) {
     if (strict) throw err;
     results.push({path: dir, err: err as Error});
@@ -231,7 +236,7 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts
 
     let isIncluded = true;
     if (excludeMatcher || includeMatcher) {
-      const sp = encoding === "buffer" ? toString(path as Buffer) : path as string;
+      const sp = encoding === "buffer" ? toString(path as Uint8Array) : path as string;
       if (excludeMatcher?.(sp)) continue;
       if (includeMatcher) isIncluded = includeMatcher(sp);
     }
@@ -244,7 +249,7 @@ async function rrdirAsyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts
 
     if (isFollowedSym || (isIncluded && needStats)) {
       try {
-        stats = await statFn(path);
+        stats = await statFn(path as Buffer);
       } catch (err) {
         if (strict) throw err;
         if (isIncluded) errEntry = {path, err: err as Error};
@@ -274,9 +279,9 @@ function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, resul
 
   while (stack.length > 0) {
     const currentDir = stack.pop()!;
-    let dirents: Array<Dirent<T>> = [];
+    let dirents: Array<DirentLike> = [];
     try {
-      dirents = readdirSync(currentDir, readdirOpts) as unknown as Array<Dirent<T>>;
+      dirents = readdirSync(currentDir as Buffer, readdirOpts) as unknown as Array<DirentLike>;
     } catch (err) {
       if (strict) throw err;
       results.push({path: currentDir, err: err as Error});
@@ -290,7 +295,7 @@ function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, resul
 
       let isIncluded = true;
       if (excludeMatcher || includeMatcher) {
-        const sp = encoding === "buffer" ? toString(path as Buffer) : path as string;
+        const sp = encoding === "buffer" ? toString(path as Uint8Array) : path as string;
         if (excludeMatcher?.(sp)) continue;
         if (includeMatcher) isIncluded = includeMatcher(sp);
       }
@@ -303,7 +308,7 @@ function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, resul
 
       if (isFollowedSym || (isIncluded && needStats)) {
         try {
-          stats = statSyncFn(path);
+          stats = statSyncFn(path as Buffer);
         } catch (err) {
           if (strict) throw err;
           if (isIncluded) errEntry = {path, err: err as Error};

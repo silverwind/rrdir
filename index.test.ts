@@ -75,14 +75,14 @@ function entry(path: string, directory = false, symlink = false) {
   return {path, directory, symlink};
 }
 
-async function makeTest<T extends Dir>(dir: T, opts: RRDirOpts | undefined, expected: Array<ReturnType<typeof entry>> | ((results: Array<Entry>) => void)) {
+async function makeTest<T extends Dir>(dir: T, opts: RRDirOpts | undefined, expected: Array<ReturnType<typeof entry>> | ((results: Array<Entry<T>>) => void)) {
   if (typeof dir === "string") {
     dir = join(testDir, dir) as T;
   } else {
     dir = joinUint8Array(testDir, dir) as T;
   }
 
-  let iteratorResults: Array<Entry> = [];
+  let iteratorResults: Array<Entry<T>> = [];
   for await (const result of rrdir(dir, opts)) iteratorResults.push(result);
   let asyncResults = await rrdirAsync(dir, opts);
   let syncResults = rrdirSync(dir, opts);
@@ -139,7 +139,7 @@ test("stats", () => makeTest("test", {stats: true}, (results: Array<Entry>) => {
   }
 }));
 
-test.skipIf(isBun)("stats Uint8Array", () => makeTest(toUint8Array("test") as any, {stats: true}, (results: Array<Entry>) => {
+test.skipIf(isBun)("stats Uint8Array", () => makeTest(toUint8Array("test"), {stats: true}, (results: Array<Entry>) => {
   for (const {stats} of results) {
     expect(stats).toBeTruthy();
   }
@@ -249,7 +249,7 @@ test("error strict", async () => {
   expect(() => rrdirSync("notfound", {strict: true})).toThrow();
 });
 
-test.skipIf(isBun)("Uint8Array", () => makeTest(toUint8Array("test") as any, undefined, (results: Array<Entry>) => {
+test.skipIf(isBun)("Uint8Array", () => makeTest(toUint8Array("test"), undefined, (results: Array<Entry>) => {
   for (const entry of results) {
     expect(entry.path instanceof Uint8Array).toEqual(true);
   }
@@ -260,7 +260,7 @@ if (!skipWeird) {
     expect(uint8ArrayContains(toUint8Array(results[0].path as string), weirdUint8Array)).toEqual(false);
   }));
 
-  test.skipIf(isBun)("weird as Uint8Array", () => makeTest(toUint8Array("test") as any, {include: ["**/x*"]}, (results: Array<Entry>) => {
+  test.skipIf(isBun)("weird as Uint8Array", () => makeTest(toUint8Array("test"), {include: ["**/x*"]}, (results: Array<Entry>) => {
     expect(uint8ArrayContains(results[0].path as Uint8Array, weirdUint8Array)).toEqual(true);
   }));
 }
@@ -288,8 +288,8 @@ test.skipIf(isWindows)("stat error yields single entry per path", async () => {
   }
 });
 
-test.skipIf(isWindows || isBun)("Uint8Array absolute include", () => makeTest(toUint8Array("test") as any, {include: [join(testDir, "**/f*")]}, (results: Array<Entry>) => {
-  const names = results.map(r => toString(r.path as Uint8Array)).sort();
+test.skipIf(isWindows || isBun)("Uint8Array absolute include", () => makeTest(toUint8Array("test"), {include: [join(testDir, "**/f*")]}, (results: Array<Entry<Uint8Array>>) => {
+  const names = results.map(r => toString(r.path)).sort();
   expect(names).toEqual([
     join(testDir, "test/dir/file"),
     join(testDir, "test/dir2/file"),
@@ -302,8 +302,8 @@ test.skipIf(isBun)("Uint8Array trailing slash stripped", () => {
   const dir = joinUint8Array(testDir, "test");
   const dirSlash = Uint8Array.from([...dir, ...sepUint8Array]);
 
-  const noSlash = rrdirSync(dir as any).map(e => toString(e.path as Uint8Array)).sort();
-  const withSlash = rrdirSync(dirSlash as any).map(e => toString(e.path as Uint8Array)).sort();
+  const noSlash = rrdirSync(dir).map(e => toString(e.path)).sort();
+  const withSlash = rrdirSync(dirSlash).map(e => toString(e.path)).sort();
 
   expect(withSlash).toEqual(noSlash);
 });
