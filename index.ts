@@ -117,17 +117,16 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
 
   const regexes = patterns.map(pattern => globToRegex(pattern, insensitive));
   const prefix = pathIsAbsolute ? "" : resolve(".") + sep;
-  const len = regexes.length;
   if (sep === "\\") {
     return (path: string) => {
       const p = (prefix + path).replace(/\\/g, "/");
-      for (let i = 0; i < len; i++) if (regexes[i].test(p)) return true;
+      for (const re of regexes) if (re.test(p)) return true;
       return false;
     };
   }
   return (path: string) => {
     const p = prefix + path;
-    for (let i = 0; i < len; i++) if (regexes[i].test(p)) return true;
+    for (const re of regexes) if (re.test(p)) return true;
     return false;
   };
 }
@@ -140,7 +139,7 @@ function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts
     dir = dir.substring(0, dir.length - 1) as T;
   }
   const isBuffer = dir instanceof Uint8Array;
-  const insensitive = opts.insensitive || false;
+  const insensitive = Boolean(opts.insensitive);
   const pathIsAbsolute = dir instanceof Uint8Array ? isAbsolute(toString(dir)) : isAbsolute(dir);
   const includeMatcher = createMatcher(opts.include, insensitive, pathIsAbsolute);
   const excludeMatcher = createMatcher(opts.exclude, insensitive, pathIsAbsolute);
@@ -289,12 +288,11 @@ function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results
       if ((followSymlinks && isSym) || (isIncluded && needStats)) {
         pendingStats++;
         statCbFn(path as Buffer, (statErr, stats) => {
-          if (statErr) {
-            if (strict) firstErr ??= statErr;
-            else if (isIncluded) results.push({path, err: statErr});
+          if (statErr && strict) {
+            firstErr ??= statErr;
           } else {
-            const directory = stats.isDirectory();
-            if (isIncluded) results.push(build(path, directory, isSym && !followSymlinks, stats, needStats));
+            const directory = stats ? stats.isDirectory() : isDir;
+            if (isIncluded) results.push(statErr ? {path, err: statErr} : build(path, directory, isSym && !followSymlinks, stats, needStats));
             if (directory) pendingDirs.push(path);
           }
           pendingStats--;

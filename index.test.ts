@@ -1,6 +1,6 @@
 import {rrdir, rrdirAsync, rrdirSync, type Entry, type RRDirOpts, type Dir} from "./index.ts";
 import {join, sep, relative} from "node:path";
-import {writeFile, mkdir, symlink, rm} from "node:fs/promises";
+import {writeFile, mkdir, symlink, rm, chmod} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
 import {platform, tmpdir} from "node:os";
 
@@ -17,7 +17,7 @@ const weirdString = toString(weirdUint8Array);
 
 // node on windows apparently sometimes can not follow symlink directories
 const isWindows = platform() === "win32";
-const isBun = Boolean((globalThis as any).Bun);
+const isBun = "Bun" in globalThis;
 
 const skipWeird = platform() === "darwin" || isWindows;
 const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
@@ -264,6 +264,30 @@ if (!skipWeird) {
     expect(uint8ArrayContains(results[0].path as Uint8Array, weirdUint8Array)).toEqual(true);
   }));
 }
+
+test.skipIf(isWindows)("descends into directory whose stat failed", async () => {
+  // chmod 0o400 on parent: readdir works, stat on children fails (no traversal bit).
+  // Iterator and sync paths fall back to dirent.isDirectory() for descent; callback path must too.
+  const dir = mkdtempSync(join(tmpdir(), "rrdir-statfail-"));
+  try {
+    await mkdir(join(dir, "child"));
+    await chmod(dir, 0o400);
+    const opts = {stats: true};
+
+    const iter: Array<Entry> = [];
+    for await (const r of rrdir(dir, opts)) iter.push(r);
+    const asyncResults = await rrdirAsync(dir, opts);
+    const syncResults = rrdirSync(dir, opts);
+
+    for (const results of [iter, asyncResults, syncResults]) {
+      expect(results.length).toEqual(2);
+      expect(results.every(r => r.err)).toEqual(true);
+    }
+  } finally {
+    await chmod(dir, 0o700);
+    await rm(dir, {recursive: true});
+  }
+});
 
 test.skipIf(isWindows)("stat error yields single entry per path", async () => {
   const dir = mkdtempSync(join(tmpdir(), "rrdir-stat-"));
