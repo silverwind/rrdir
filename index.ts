@@ -13,6 +13,8 @@ type DirentLike = {
 const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
 const sepUint8Array = new TextEncoder().encode(sep);
+// hoisted so Promise.all's per-directory reads share one rejection handler instead of allocating one each
+const returnError = (err: unknown): Error => err as Error;
 
 /** A directory path, either as a string or a Uint8Array for raw byte paths. */
 export type Dir = string | Uint8Array;
@@ -165,23 +167,24 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
   dir = init.dir;
 
   // BFS with parallel reads per level exploits I/O concurrency via Promise.all.
+  // reads stays index-aligned with currentLevel; a failed read resolves to its Error.
   let currentLevel: Array<T> = [dir];
   while (currentLevel.length > 0) {
     const reads = await Promise.all(currentLevel.map(d =>
-      readdir(d as Buffer, readdirOpts).then(
-        dirents => ({dir: d, dirents: dirents as unknown as Array<DirentLike>}),
-        (err: unknown) => ({dir: d, err: err as Error}),
-      )
+      readdir(d as Buffer, readdirOpts).then(undefined, returnError)
     ));
     const nextLevel: Array<T> = [];
-    for (const r of reads) {
-      if ("err" in r) {
-        if (strict) throw r.err;
-        yield {path: r.dir, err: r.err};
+    for (let i = 0; i < reads.length; i++) {
+      const r = reads[i];
+      const currentDir = currentLevel[i];
+      if (r instanceof Error) {
+        if (strict) throw r;
+        yield {path: currentDir, err: r};
         continue;
       }
-      const prefix = makeDirPrefix(r.dir, isBuffer);
-      for (const dirent of r.dirents) {
+      const dirents = r as unknown as Array<DirentLike>;
+      const prefix = makeDirPrefix(currentDir, isBuffer);
+      for (const dirent of dirents) {
         const path = makePath<T>(dirent.name, prefix, isBuffer);
 
         let isIncluded = true;

@@ -7,13 +7,13 @@ This module is able to read any path including ones that contain invalid UTF-8 s
 
 | Benchmark | rrdir | fdir |
 |---|---|---|
-| async | 59ms | 58ms |
-| sync | 158ms | 183ms |
-| async + glob | 58ms | 58ms |
-| sync + glob | 175ms | 198ms |
-| async + exclude | 38ms | 38ms |
-| sync + exclude | 122ms | 121ms |
-| async iterator | 80ms | — |
+| async | 60ms | 59ms |
+| sync | 153ms | 167ms |
+| async + glob | 57ms | 56ms |
+| sync + glob | 169ms | 185ms |
+| async + exclude | 37ms | 37ms |
+| sync + exclude | 114ms | 107ms |
+| async iterator | 78ms | — |
 
 Results for 122K entries (111K files, 11K dirs), Node.js on macOS. rrdir returns richer entries (path + directory + symlink) while fdir returns only paths. fdir uses [picomatch](https://github.com/micromatch/picomatch) for glob matching, rrdir has a built-in glob matcher. Run with `make bench`.
 
