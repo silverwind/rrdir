@@ -15,6 +15,8 @@ const toString = decoder.decode.bind(decoder);
 const sepUint8Array = new TextEncoder().encode(sep);
 // hoisted so Promise.all's per-directory reads share one rejection handler instead of allocating one each
 const returnError = (err: unknown): Error => err as Error;
+// 0x2F is "/" and 0x5C is "\", the path separators on the platforms we support
+const isSep = (code: number): boolean => code === 0x2F || code === 0x5C;
 
 /** A directory path, either as a string or a Uint8Array for raw byte paths. */
 export type Dir = string | Uint8Array;
@@ -68,12 +70,16 @@ function makeDirPrefix(dir: Dir, isBuffer: boolean): string | Uint8Array {
   if (isBuffer) {
     const dirBytes = dir as Uint8Array;
     if (dirBytes.length === 1 && dirBytes[0] === 0x2E) return dirBytes.subarray(0, 0);
+    if (isSep(dirBytes[dirBytes.length - 1])) return dirBytes; // root already ends in a separator
     const result = new Uint8Array(dirBytes.length + sepUint8Array.length);
     result.set(dirBytes, 0);
     result.set(sepUint8Array, dirBytes.length);
     return result;
   }
-  return (dir as string) === "." ? "" : (dir as string) + sep;
+  const d = dir as string;
+  if (d === ".") return "";
+  if (isSep(d.charCodeAt(d.length - 1))) return d; // root already ends in a separator
+  return d + sep;
 }
 
 function makePath<T extends Dir>(name: string | Uint8Array, prefix: string | Uint8Array, isBuffer: boolean): T {
@@ -134,11 +140,18 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
 }
 
 function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts: InternalOpts} {
+  // strip trailing separators, but never reduce a filesystem root ("/", "C:\", "\\server\share\")
+  // to an empty or drive-relative path, which would make readdir fail or read the wrong directory
   if (dir instanceof Uint8Array) {
-    const last = dir[dir.length - 1];
-    if (last === 0x2F || last === 0x5C) dir = dir.subarray(0, -1) as T;
+    let end = dir.length;
+    while (end > 1 && isSep(dir[end - 1])) end--;
+    if (end === 2 && dir[1] === 0x3A && dir.length > 2) end = 3; // keep the separator on a drive root "C:\"
+    if (end < dir.length) dir = dir.subarray(0, end) as T;
   } else if (/[/\\]$/.test(dir)) {
-    dir = dir.substring(0, dir.length - 1) as T;
+    const stripped = dir.replace(/[/\\]+$/, "");
+    if (stripped === "") dir = dir.slice(0, 1) as T; // bare root like "/" or "\"
+    else if (/^[a-zA-Z]:$/.test(stripped)) dir = `${stripped}${sep}` as T; // drive root "C:\"
+    else dir = stripped as T;
   }
   const isBuffer = dir instanceof Uint8Array;
   const insensitive = Boolean(opts.insensitive);

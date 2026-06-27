@@ -1,5 +1,5 @@
 import {rrdir, rrdirAsync, rrdirSync, type Entry, type RRDirOpts, type Dir} from "./index.ts";
-import {join, sep, relative} from "node:path";
+import {join, sep, relative, parse} from "node:path";
 import {writeFile, mkdir, symlink, rm, chmod} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
 import {platform, tmpdir} from "node:os";
@@ -330,4 +330,39 @@ test.skipIf(isBun)("Uint8Array trailing slash stripped", () => {
   const withSlash = rrdirSync(dirSlash).map(e => toString(e.path)).sort();
 
   expect(withSlash).toEqual(noSlash);
+});
+
+test("multiple trailing separators stripped", () => {
+  const expected = rrdirSync(join(testDir, "test")).map(e => e.path).sort();
+  for (const suffix of [`${sep}${sep}`, `${sep}${sep}${sep}`, "//"]) {
+    const got = rrdirSync(join(testDir, "test") + suffix).map(e => e.path).sort();
+    expect(got).toEqual(expected);
+  }
+});
+
+test.skipIf(isBun)("Uint8Array multiple trailing separators stripped", () => {
+  const dir = joinUint8Array(testDir, "test");
+  const expected = rrdirSync(dir).map(e => toString(e.path)).sort();
+  const dirSlashes = Uint8Array.from([...dir, ...sepUint8Array, ...sepUint8Array]);
+  const got = rrdirSync(dirSlashes).map(e => toString(e.path)).sort();
+  expect(got).toEqual(expected);
+});
+
+// a root must be listed, not corrupted into "" (ENOENT) or a drive-relative path
+test("root path is read, not corrupted", async () => {
+  const root = isWindows ? parse(process.cwd()).root : "/";
+  for (const dir of [root, `${root}${sep}`]) {
+    const {value, done} = await rrdir(dir).next();
+    expect(done).toBe(false);
+    expect(value.err).toBeUndefined();
+    expect(value.path).not.toBe("");
+    expect(value.path.startsWith(root)).toBe(true);
+  }
+});
+
+test.skipIf(isWindows || isBun)("Uint8Array root path is read, not corrupted", async () => {
+  const {value, done} = await rrdir(toUint8Array("/")).next();
+  expect(done).toBe(false);
+  expect(value.err).toBeUndefined();
+  expect(toString(value.path).startsWith("/")).toBe(true);
 });
