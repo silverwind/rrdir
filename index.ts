@@ -183,9 +183,13 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
   // reads stays index-aligned with currentLevel; a failed read resolves to its Error.
   let currentLevel: Array<T> = [dir];
   while (currentLevel.length > 0) {
-    const reads = await Promise.all(currentLevel.map(d =>
-      readdir(d as Buffer, readdirOpts).then(undefined, returnError)
-    ));
+    const reads = await Promise.all(currentLevel.map(async d => {
+      try {
+        return await readdir(d as Buffer, readdirOpts);
+      } catch (err) {
+        return returnError(err);
+      }
+    }));
     const nextLevel: Array<T> = [];
     for (let i = 0; i < reads.length; i++) {
       const r = reads[i];

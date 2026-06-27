@@ -82,8 +82,7 @@ async function makeTest<T extends Dir>(dir: T, opts: RRDirOpts | undefined, expe
     dir = joinUint8Array(testDir, dir) as T;
   }
 
-  let iteratorResults: Array<Entry<T>> = [];
-  for await (const result of rrdir(dir, opts)) iteratorResults.push(result);
+  let iteratorResults: Array<Entry<T>> = await Array.fromAsync(rrdir(dir, opts));
   let asyncResults = await rrdirAsync(dir, opts);
   let syncResults = rrdirSync(dir, opts);
 
@@ -274,8 +273,7 @@ test.skipIf(isWindows)("descends into directory whose stat failed", async () => 
     await chmod(dir, 0o400);
     const opts = {stats: true};
 
-    const iter: Array<Entry> = [];
-    for await (const r of rrdir(dir, opts)) iter.push(r);
+    const iter: Array<Entry> = await Array.fromAsync(rrdir(dir, opts));
     const asyncResults = await rrdirAsync(dir, opts);
     const syncResults = rrdirSync(dir, opts);
 
@@ -295,8 +293,7 @@ test.skipIf(isWindows)("stat error yields single entry per path", async () => {
     await symlink(join(dir, "no-such-target"), join(dir, "broken"));
     const opts = {followSymlinks: true, stats: true};
 
-    const iter: Array<Entry> = [];
-    for await (const result of rrdir(dir, opts)) iter.push(result);
+    const iter: Array<Entry> = await Array.fromAsync(rrdir(dir, opts));
     const asyncResults = await rrdirAsync(dir, opts);
     const syncResults = rrdirSync(dir, opts);
 
