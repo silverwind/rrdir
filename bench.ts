@@ -6,7 +6,8 @@ import {tmpdir} from "node:os";
 const depth = 4;
 const breadth = 10;
 const filesPerDir = 10;
-const iterations = 5;
+const runs = Number(process.env.BENCH_RUNS) || 10;
+const filter = process.env.BENCH_FILTER;
 
 function createTree(dir: string, currentDepth: number) {
   for (let i = 0; i < filesPerDir; i++) {
@@ -21,17 +22,17 @@ function createTree(dir: string, currentDepth: number) {
   }
 }
 
-async function bench(label: string, fn: () => unknown | Promise<unknown>) {
+async function bench(name: string, fn: () => unknown | Promise<unknown>) {
+  if (filter && !name.includes(filter)) return;
   await fn(); // warmup
   const times: number[] = [];
-  for (let i = 0; i < iterations; i++) {
+  for (let run = 0; run < runs; run++) {
     const start = performance.now();
     await fn();
     times.push(performance.now() - start);
   }
-  const avg = times.reduce((a, b) => a + b, 0) / times.length;
-  const min = Math.min(...times);
-  console.info(`${label.padEnd(40)} avg: ${avg.toFixed(1)}ms  min: ${min.toFixed(1)}ms`);
+  times.sort((a, b) => a - b);
+  console.info(`${name.padEnd(40)} med ${times[runs >> 1].toFixed(1)}ms  min ${times[0].toFixed(1)}ms`);
 }
 
 const tmpDir = mkdtempSync(join(tmpdir(), "rrdir-bench-"));
