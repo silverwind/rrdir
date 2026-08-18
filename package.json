@@ -1,6 +1,6 @@
 {
   "name": "rrdir",
-  "version": "14.2.15",
+  "version": "14.2.16",
   "description": "Recursive directory reader with a delightful API",
   "keywords": [
     "recursive",
