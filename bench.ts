@@ -84,6 +84,11 @@ try {
   console.info("--- stats ---");
   await bench("rrdirAsync + stats", () => rrdirAsync(tmpDir, {stats: true}));
   await bench("rrdirSync + stats", () => rrdirSync(tmpDir, {stats: true}));
+  await bench("rrdir (iterator) + stats", async () => {
+    let count = 0;
+    for await (const entry of rrdir(tmpDir, {stats: true})) count += entry ? 1 : 0;
+    return count;
+  });
 } finally {
   rmSync(tmpDir, {recursive: true});
 }

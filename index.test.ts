@@ -9,7 +9,7 @@ const toUint8Array = encoder.encode.bind(encoder);
 const decoder = new TextDecoder();
 const toString: (input: AllowSharedBufferSource) => string = decoder.decode.bind(decoder);
 const sepUint8Array = toUint8Array(sep);
-const uint8ArrayContains = (arr: Uint8Array, subArr: Uint8Array) => arr.toString().includes(subArr.toString());
+const uint8ArrayContains = (arr: Uint8Array, subArr: Uint8Array) => Buffer.from(arr).includes(Buffer.from(subArr));
 
 // this Uint8Array does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
 const weirdUint8Array = Uint8Array.from([0x78, 0xf6, 0x6c, 0x78]);
@@ -228,6 +228,15 @@ test("include 5", () => makeTest("test", {include: ["**/dir"]}, [
 test("include 6", () => makeTest("test", {include: ["**.txt"]}, [
   entry("test/dir2/exclude.txt"),
 ]));
+test("include 7", () => makeTest("test", {include: ["**/dir2/fil?"]}, [
+  entry("test/dir2/file"),
+]));
+// a middle "/**/" also matches zero segments, so "test/file" matches too
+test("include 8", () => makeTest("test", {include: ["**/test/**/file"]}, [
+  entry("test/dir/file"),
+  entry("test/dir2/file"),
+  entry("test/file"),
+]));
 test("insensitive", () => makeTest("test", {include: ["**/u*"], insensitive: true}, [
   entry("test/dir2/UPPER"),
 ]));
@@ -246,6 +255,10 @@ test("error strict", async () => {
   await expect(rrdir("notfound", {strict: true}).next()).rejects.toThrow();
   await expect(rrdirAsync("notfound", {strict: true})).rejects.toThrow();
   expect(() => rrdirSync("notfound", {strict: true})).toThrow();
+});
+
+test("invalid dir rejects rather than throwing synchronously", async () => {
+  await expect(rrdirAsync(null as any)).rejects.toThrow();
 });
 
 test.skipIf(isBun)("Uint8Array", () => makeTest(toUint8Array("test"), undefined, (results: Array<Entry>) => {
@@ -362,4 +375,15 @@ test.skipIf(isWindows || isBun)("Uint8Array root path is read, not corrupted", a
   expect(done).toBe(false);
   expect(value.err).toBeUndefined();
   expect(toString(value.path).startsWith("/")).toBe(true);
+});
+
+// a trailing backslash is part of the name on posix, stripping it reads a different directory
+test.skipIf(isWindows)("trailing backslash is a filename, not a separator", async () => {
+  const dir = join(testDir, "bs");
+  await mkdir(join(dir, "a"), {recursive: true});
+  await mkdir(join(dir, "a\\"));
+  await writeFile(join(dir, "a", "in-a"), "test");
+  await writeFile(join(dir, "a\\", "in-backslash"), "test");
+  expect(rrdirSync(join(dir, "a\\")).map(e => parse(e.path).base)).toEqual(["in-backslash"]);
+  await rm(dir, {recursive: true});
 });

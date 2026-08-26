@@ -1,7 +1,7 @@
 # rrdir
 [![](https://img.shields.io/npm/v/rrdir.svg?style=flat)](https://www.npmjs.org/package/rrdir) [![](https://img.shields.io/npm/dm/rrdir.svg)](https://www.npmjs.org/package/rrdir) [![](https://packagephobia.com/badge?p=rrdir)](https://packagephobia.com/result?p=rrdir) [![](https://depx.co/api/badge/rrdir)](https://depx.co/pkg/rrdir)
 
-`rrdir` recursively reads a directory and returns entries within via an async iterator or async/sync as Array. It can typically iterate millions of files in a matter of seconds. Memory usage is `O(1)` for the async iterator and `O(n)` for the Array variants.
+`rrdir` recursively reads a directory and returns entries within via an async iterator or async/sync as Array. It can typically iterate millions of files in a matter of seconds. The async iterator holds only one directory level in memory at a time, the Array variants hold all entries.
 
 This module is able to read any path including ones that contain invalid UTF-8 sequences.
 
@@ -51,8 +51,10 @@ The directory to read, either absolute or relative. Pass a `Uint8Array` to switc
 
 - `stats` *boolean*: Whether to include `entry.stats`. Will reduce performance. Default: `false`.
 - `followSymlinks` *boolean*: Whether to follow symlinks for both recursion and `stat` calls. Default: `false`.
-- `exclude` *Array*: Path globs to exclude, e.g. `["**.js"]`. Default: `undefined`.
+- `exclude` *Array*: Path globs to exclude, e.g. `["**.js"]`. Excluding a directory prunes its subtree. Default: `undefined`.
 - `include` *Array*: Path globs to include, e.g. `["**.map"]`. Default: `undefined`.
+
+`include` and `exclude` support `*` (any characters except `/`), `**` (any characters) and `?` (one character except `/`). Character classes and brace expansion are not supported.
 - `strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
 - `insensitive` *boolean*: Whether `include` and `exclude` match case-insensitively. Default: `false`.
 

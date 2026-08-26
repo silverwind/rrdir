@@ -13,10 +13,10 @@ type DirentLike = {
 const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
 const sepUint8Array = new TextEncoder().encode(sep);
-// hoisted so Promise.all's per-directory reads share one rejection handler instead of allocating one each
-const returnError = (err: unknown): Error => err as Error;
-// 0x2F is "/" and 0x5C is "\", the path separators on the platforms we support
-const isSep = (code: number): boolean => code === 0x2F || code === 0x5C;
+const isWin = sep === "\\";
+// 0x2F is "/", 0x5C is "\" which separates only on windows, elsewhere it is a valid filename byte
+const isSep = (code: number): boolean => code === 0x2F || (isWin && code === 0x5C);
+const trailingSep = isWin ? /[/\\]+$/ : /\/+$/;
 
 /** A directory path, either as a string or a Uint8Array for raw byte paths. */
 export type Dir = string | Uint8Array;
@@ -29,15 +29,17 @@ export type RRDirOpts = {
   stats?: boolean,
   /** Whether to follow symlinks for both recursion and `stat` calls. Default: `false`. */
   followSymlinks?: boolean,
-  /** Path globs to include, e.g. `["**.map"]`. Default: `undefined`. */
+  /** Path globs to include, e.g. `["**.map"]`. Supports `*`, `**` and `?`. Default: `undefined`. */
   include?: Array<string>,
-  /** Path globs to exclude, e.g. `["**.js"]`. Default: `undefined`. */
+  /** Path globs to exclude, e.g. `["**.js"]`. Supports `*`, `**` and `?`. Excluding a directory prunes its subtree. Default: `undefined`. */
   exclude?: Array<string>,
   /** Whether `include` and `exclude` match case-insensitively. Default: `false`. */
   insensitive?: boolean,
 };
 
 type Matcher = ((path: string) => boolean) | null;
+
+type Pending<T> = {path: T, isIncluded: boolean, isDir: boolean, isSym: boolean, stats: Promise<Stats | Error> | undefined};
 
 type InternalOpts = {
   includeMatcher: Matcher,
@@ -100,24 +102,30 @@ function build<T extends Dir>(path: T, directory: boolean, symlink: boolean, sta
   return {path, directory, symlink};
 }
 
+// resolves instead of rejecting, so abandoning the yield loop cannot strand an unhandled rejection
+async function statOrError(statFn: typeof stat, path: Buffer): Promise<Stats | Error> {
+  try {
+    return await statFn(path);
+  } catch (err) {
+    return err as Error;
+  }
+}
+
 function globToRegex(pattern: string, insensitive: boolean): RegExp {
   pattern = pattern.replace(/\\/g, "/");
   const endsWithDoubleStar = pattern.endsWith("/**");
 
-  let regex = pattern.replace(/\*\*|\*|[.+?^${}()|[\]\\]/g, m => {
+  let regex = pattern.replace(/\/\*\*(?=\/)|\*\*|\*|\?|[.+^${}()|[\]\\]/g, m => {
+    if (m === "/**") return "(?:/.*)?"; // a middle "/**/" also matches zero segments
     if (m === "**") return ".*";
     if (m === "*") return "[^/]*";
+    if (m === "?") return "[^/]";
     return `\\${m}`;
   });
 
-  if (endsWithDoubleStar) {
-    regex = regex.slice(0, -3);
-    regex = `^${regex}(?:/.*)?$`;
-  } else {
-    regex = `^${regex}$`;
-  }
+  if (endsWithDoubleStar) regex = `${regex.slice(0, -3)}(?:/.*)?`; // a trailing "/**" also matches the directory itself
 
-  return new RegExp(regex, insensitive ? "i" : "");
+  return new RegExp(`^${regex}$`, insensitive ? "i" : "");
 }
 
 function createMatcher(patterns: Array<string> | undefined, insensitive: boolean, pathIsAbsolute: boolean): Matcher {
@@ -145,12 +153,12 @@ function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts
   if (dir instanceof Uint8Array) {
     let end = dir.length;
     while (end > 1 && isSep(dir[end - 1])) end--;
-    if (end === 2 && dir[1] === 0x3A && dir.length > 2) end = 3; // keep the separator on a drive root "C:\"
+    if (isWin && end === 2 && dir[1] === 0x3A && dir.length > 2) end = 3; // keep the separator on a drive root "C:\"
     if (end < dir.length) dir = dir.subarray(0, end) as T;
-  } else if (/[/\\]$/.test(dir)) {
-    const stripped = dir.replace(/[/\\]+$/, "");
+  } else if (trailingSep.test(dir)) {
+    const stripped = dir.replace(trailingSep, "");
     if (stripped === "") dir = dir.slice(0, 1) as T; // bare root like "/" or "\"
-    else if (/^[a-zA-Z]:$/.test(stripped)) dir = `${stripped}${sep}` as T; // drive root "C:\"
+    else if (isWin && /^[a-zA-Z]:$/.test(stripped)) dir = `${stripped}${sep}` as T; // drive root "C:\"
     else dir = stripped as T;
   }
   const isBuffer = dir instanceof Uint8Array;
@@ -173,7 +181,7 @@ function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts
   }};
 }
 
-/** Recursively read a directory via async iterator. Memory usage is `O(1)`. */
+/** Recursively read a directory via async iterator. Holds only one directory level in memory at a time. */
 export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): AsyncGenerator<Entry<T>> {
   const init = initOpts(dir, opts);
   const {includeMatcher, excludeMatcher, isBuffer, followSymlinks, needStats, strict, readdirOpts, statFn} = init.internalOpts;
@@ -187,7 +195,7 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
       try {
         return await readdir(d as Buffer, readdirOpts);
       } catch (err) {
-        return returnError(err);
+        return err as Error;
       }
     }));
     const nextLevel: Array<T> = [];
@@ -201,6 +209,8 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
       }
       const dirents = r as unknown as Array<DirentLike>;
       const prefix = makeDirPrefix(currentDir, isBuffer);
+      // a directory's stat calls are all dispatched before any is awaited, awaiting inline serializes the syscalls
+      let deferred: Array<Pending<T>> | undefined;
       for (const dirent of dirents) {
         const path = makePath<T>(dirent.name, prefix, isBuffer);
 
@@ -217,15 +227,29 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
           isDir = dirent.isDirectory();
           if (!isDir) isSym = dirent.isSymbolicLink();
         }
+
+        let stats: Promise<Stats | Error> | undefined;
+        if ((followSymlinks && isSym) || (isIncluded && needStats)) {
+          stats = statOrError(statFn, path as Buffer);
+        } else if (!deferred) { // nothing is pending yet, so yielding now keeps readdir order
+          if (isIncluded) yield build(path, isDir, isSym && !followSymlinks, undefined, needStats);
+          if (isDir) nextLevel.push(path);
+          continue;
+        }
+        (deferred ??= []).push({path, isIncluded, isDir, isSym, stats});
+      }
+
+      for (const {path, isIncluded, isDir, isSym, stats: pending} of deferred ?? []) {
         let stats: Stats | undefined;
         let errEntry: Entry<T> | undefined;
 
-        if ((followSymlinks && isSym) || (isIncluded && needStats)) {
-          try {
-            stats = await statFn(path as Buffer);
-          } catch (err) {
-            if (strict) throw err;
-            if (isIncluded) errEntry = {path, err: err as Error};
+        if (pending) {
+          const result = await pending;
+          if (result instanceof Error) {
+            if (strict) throw result;
+            if (isIncluded) errEntry = {path, err: result};
+          } else {
+            stats = result;
           }
         }
 
@@ -240,9 +264,9 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
 
 /** Recursively read a directory, returning all entries as an array. Memory usage is `O(n)`. */
 export function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Promise<Array<Entry<T>>> {
-  const init = initOpts(dir, opts);
-  const results: Array<Entry<T>> = [];
   return new Promise((resolve, reject) => {
+    const init = initOpts(dir, opts);
+    const results: Array<Entry<T>> = [];
     rrdirAsyncCb(init.dir, init.internalOpts, results, err => {
       if (err) reject(err);
       else resolve(results);
@@ -267,7 +291,6 @@ function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results
     const prefix = makeDirPrefix(dir, isBuffer);
     const pendingDirs: Array<T> = [];
     let pendingStats = 0;
-    let direntsProcessed = false;
     let firstErr: Error | undefined;
     let finished = false;
 
@@ -277,13 +300,17 @@ function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results
         finished = true;
         return done(firstErr);
       }
-      if (!direntsProcessed || pendingStats > 0) return;
+      if (pendingStats > 0) return;
       finished = true;
       if (!pendingDirs.length) return done();
       let remaining = pendingDirs.length;
       const onChildDone = (err?: Error) => {
-        if (err && !firstErr) firstErr = err;
-        if (--remaining === 0) done(firstErr);
+        if (firstErr) return; // strict already reported, remaining siblings are moot
+        if (err) {
+          firstErr = err;
+          return done(err);
+        }
+        if (--remaining === 0) done();
       };
       for (const p of pendingDirs) rrdirAsyncCb(p, internalOpts, results, onChildDone);
     };
@@ -323,7 +350,6 @@ function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results
         if (isDir) pendingDirs.push(path);
       }
     }
-    direntsProcessed = true;
     tryDescend();
   });
 }
