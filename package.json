@@ -14,7 +14,10 @@
     "glob"
   ],
   "author": "silverwind <me@silverwind.io>",
-  "repository": "silverwind/rrdir",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/silverwind/rrdir.git"
+  },
   "license": "BSD-2-Clause",
   "type": "module",
   "sideEffects": false,
