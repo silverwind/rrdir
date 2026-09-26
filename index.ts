@@ -1,4 +1,3 @@
-import {readdir, stat, lstat} from "node:fs/promises";
 import {readdir as readdirCb, stat as statCb, lstat as lstatCb, readdirSync, statSync, lstatSync} from "node:fs";
 import {sep, resolve, isAbsolute} from "node:path";
 import type {Stats} from "node:fs";
@@ -12,7 +11,7 @@ type DirentLike = {
 
 const decoder = new TextDecoder();
 const toString = decoder.decode.bind(decoder);
-const sepUint8Array = new TextEncoder().encode(sep);
+const sepByte = sep.charCodeAt(0);
 const isWin = sep === "\\";
 // 0x2F is "/", 0x5C is "\" which separates only on windows, elsewhere it is a valid filename byte
 const isSep = (code: number): boolean => code === 0x2F || (isWin && code === 0x5C);
@@ -49,7 +48,6 @@ type InternalOpts = {
   needStats: boolean,
   strict: boolean,
   readdirOpts: any,
-  statFn: typeof stat,
   statCbFn: typeof statCb,
   statSyncFn: typeof statSync,
 };
@@ -73,9 +71,9 @@ function makeDirPrefix(dir: Dir, isBuffer: boolean): string | Uint8Array {
     const dirBytes = dir as Uint8Array;
     if (dirBytes.length === 1 && dirBytes[0] === 0x2E) return dirBytes.subarray(0, 0);
     if (isSep(dirBytes[dirBytes.length - 1])) return dirBytes; // root already ends in a separator
-    const result = new Uint8Array(dirBytes.length + sepUint8Array.length);
+    const result = new Uint8Array(dirBytes.length + 1);
     result.set(dirBytes, 0);
-    result.set(sepUint8Array, dirBytes.length);
+    result[dirBytes.length] = sepByte;
     return result;
   }
   const d = dir as string;
@@ -103,12 +101,8 @@ function build<T extends Dir>(path: T, directory: boolean, symlink: boolean, sta
 }
 
 // resolves instead of rejecting, so abandoning the yield loop cannot strand an unhandled rejection
-async function statOrError(statFn: typeof stat, path: Buffer): Promise<Stats | Error> {
-  try {
-    return await statFn(path);
-  } catch (err) {
-    return err as Error;
-  }
+function statOrError(statCbFn: typeof statCb, path: Buffer): Promise<Stats | Error> {
+  return new Promise(resolve => statCbFn(path, (err, stats) => resolve(err ?? stats)));
 }
 
 function globToRegex(pattern: string, insensitive: boolean): RegExp {
@@ -175,7 +169,6 @@ function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts
     needStats: Boolean(opts.stats),
     strict: Boolean(opts.strict),
     readdirOpts: {encoding: isBuffer ? "buffer" : "utf8", withFileTypes: true},
-    statFn: followSymlinks ? stat : lstat,
     statCbFn: followSymlinks ? statCb : lstatCb,
     statSyncFn: followSymlinks ? statSync : lstatSync,
   }};
@@ -184,20 +177,20 @@ function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts
 /** Recursively read a directory via async iterator. Holds only one directory level in memory at a time. */
 export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): AsyncGenerator<Entry<T>> {
   const init = initOpts(dir, opts);
-  const {includeMatcher, excludeMatcher, isBuffer, followSymlinks, needStats, strict, readdirOpts, statFn} = init.internalOpts;
+  const {includeMatcher, excludeMatcher, isBuffer, followSymlinks, needStats, strict, readdirOpts, statCbFn} = init.internalOpts;
   dir = init.dir;
 
   // BFS with parallel reads per level exploits I/O concurrency via Promise.all.
   // reads stays index-aligned with currentLevel; a failed read resolves to its Error.
   let currentLevel: Array<T> = [dir];
   while (currentLevel.length > 0) {
-    const reads = await Promise.all(currentLevel.map(async d => {
+    const reads = await Promise.all(currentLevel.map(d => new Promise<Error | Array<DirentLike>>(resolve => {
       try {
-        return await readdir(d as Buffer, readdirOpts);
+        readdirCb(d as Buffer, readdirOpts, (err, dirents) => resolve(err ?? dirents as unknown as Array<DirentLike>));
       } catch (err) {
-        return err as Error;
+        resolve(err as Error);
       }
-    }));
+    })));
     const nextLevel: Array<T> = [];
     for (let i = 0; i < reads.length; i++) {
       const r = reads[i];
@@ -207,11 +200,10 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
         yield {path: currentDir, err: r};
         continue;
       }
-      const dirents = r as unknown as Array<DirentLike>;
       const prefix = makeDirPrefix(currentDir, isBuffer);
       // a directory's stat calls are all dispatched before any is awaited, awaiting inline serializes the syscalls
       let deferred: Array<Pending<T>> | undefined;
-      for (const dirent of dirents) {
+      for (const dirent of r) {
         const path = makePath<T>(dirent.name, prefix, isBuffer);
 
         let isIncluded = true;
@@ -230,7 +222,7 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
 
         let stats: Promise<Stats | Error> | undefined;
         if ((followSymlinks && isSym) || (isIncluded && needStats)) {
-          stats = statOrError(statFn, path as Buffer);
+          stats = statOrError(statCbFn, path as Buffer);
         } else if (!deferred) { // nothing is pending yet, so yielding now keeps readdir order
           if (isIncluded) yield build(path, isDir, isSym && !followSymlinks, undefined, needStats);
           if (isDir) nextLevel.push(path);
@@ -292,16 +284,9 @@ function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results
     const pendingDirs: Array<T> = [];
     let pendingStats = 0;
     let firstErr: Error | undefined;
-    let finished = false;
 
     const tryDescend = (): void => {
-      if (finished) return;
-      if (firstErr) {
-        finished = true;
-        return done(firstErr);
-      }
-      if (pendingStats > 0) return;
-      finished = true;
+      if (firstErr || pendingStats > 0) return;
       if (!pendingDirs.length) return done();
       let remaining = pendingDirs.length;
       const onChildDone = (err?: Error) => {
@@ -336,7 +321,10 @@ function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results
         pendingStats++;
         statCbFn(path as Buffer, (statErr, stats) => {
           if (statErr && strict) {
-            firstErr ??= statErr;
+            if (!firstErr) {
+              firstErr = statErr;
+              done(statErr);
+            }
           } else {
             const directory = stats ? stats.isDirectory() : isDir;
             if (isIncluded) results.push(statErr ? {path, err: statErr} : build(path, directory, isSym && !followSymlinks, stats, needStats));
