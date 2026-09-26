@@ -18,22 +18,23 @@ This module is able to read any path including ones that contain invalid UTF-8 s
 Results for 122K entries (111K files, 11K dirs), Node.js on macOS. rrdir returns richer entries (path + directory + symlink) while fdir returns only paths. fdir uses [picomatch](https://github.com/micromatch/picomatch) for glob matching, rrdir has a built-in glob matcher. Run with `make bench`.
 
 ## Usage
-```console
-npm i rrdir
+
+```sh
+pnpm add rrdir
 ```
+
 ```js
 import {rrdir, rrdirAsync, rrdirSync} from "rrdir";
 
 for await (const entry of rrdir("dir")) {
-  // => {path: 'dir/file', directory: false, symlink: false}
+  // => {path: "dir/file", directory: false, symlink: false}
 }
 
-const entries = await rrdirAsync("dir");
-// => [{path: 'dir/file', directory: false, symlink: false}]
+await rrdirAsync("dir");
+// => [{path: "dir/file", directory: false, symlink: false}]
 
-const entries = rrdirSync("dir");
-// => [{path: 'dir/file', directory: false, symlink: false}]
-
+rrdirSync("dir");
+// => [{path: "dir/file", directory: false, symlink: false}]
 ```
 
 ## API
@@ -53,10 +54,10 @@ The directory to read, either absolute or relative. Pass a `Uint8Array` to switc
 - `followSymlinks` *boolean*: Whether to follow symlinks for both recursion and `stat` calls. Default: `false`.
 - `exclude` *Array*: Path globs to exclude, e.g. `["**.js"]`. Excluding a directory prunes its subtree. Default: `undefined`.
 - `include` *Array*: Path globs to include, e.g. `["**.map"]`. Default: `undefined`.
-
-`include` and `exclude` support `*` (any characters except `/`), `**` (any characters) and `?` (one character except `/`). Character classes and brace expansion are not supported.
 - `strict` *boolean*: Whether to throw immediately when reading an entry fails. Default: `false`.
 - `insensitive` *boolean*: Whether `include` and `exclude` match case-insensitively. Default: `false`.
+
+`include` and `exclude` support `*` (any characters except `/`), `**` (any characters) and `?` (one character except `/`). Character classes and brace expansion are not supported.
 
 #### `entry` *Object*
 
