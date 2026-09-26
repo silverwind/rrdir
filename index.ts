@@ -288,7 +288,7 @@ export function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Promise
 function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results: Array<Entry<T>>, done: (err?: Error) => void): void {
   const {includeMatcher, excludeMatcher, isBuffer, followSymlinks, needStats, strict, readdirOpts, statCbFn} = internalOpts;
 
-  readdirDirents(dir as Buffer, readdirOpts, (err, dirents) => {
+  const onDirents = (err: Error | null, dirents: Array<DirentLike>): void => {
     if (err) {
       if (strict) return done(err);
       results.push({path: dir, err});
@@ -355,7 +355,13 @@ function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results
       }
     }
     tryDescend();
-  });
+  };
+
+  try {
+    readdirDirents(dir as Buffer, readdirOpts, onDirents);
+  } catch (err) {
+    onDirents(err as Error, []);
+  }
 }
 
 /** Synchronously recursively read a directory, returning all entries as an array. Memory usage is `O(n)`. */

@@ -242,11 +242,15 @@ test("exclude include", () => makeTest("test", {exclude: ["**/dir2"], include: [
   entry("test/file"),
 ]));
 
-test("error", () => makeTest("notfound", undefined, (results: Array<Entry>) => {
-  expect(results.length).toEqual(1);
-  expect(results[0].path).toMatch(/notfound$/);
-  expect(results[0].err).toBeTruthy();
-}));
+test("error entry for missing or invalid dir", async () => {
+  for (const dir of ["notfound", "not\0found"]) {
+    await makeTest(dir, undefined, (results: Array<Entry>) => {
+      expect(results.length).toEqual(1);
+      expect(results[0].path).toMatch(/not\0?found$/);
+      expect(results[0].err).toBeTruthy();
+    });
+  }
+});
 
 test("error strict", async () => {
   await expect(rrdir("notfound", {strict: true}).next()).rejects.toThrow();
