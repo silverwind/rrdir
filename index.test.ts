@@ -17,7 +17,6 @@ const weirdString = toString(weirdUint8Array);
 
 // node on windows apparently sometimes can not follow symlink directories
 const isWindows = platform() === "win32";
-const isBun = "Bun" in globalThis;
 
 const skipWeird = platform() === "darwin" || isWindows;
 const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
@@ -138,7 +137,7 @@ test("stats", () => makeTest("test", {stats: true}, (results: Array<Entry>) => {
   }
 }));
 
-test.skipIf(isBun)("stats Uint8Array", () => makeTest(toUint8Array("test"), {stats: true}, (results: Array<Entry>) => {
+test("stats Uint8Array", () => makeTest(toUint8Array("test"), {stats: true}, (results: Array<Entry>) => {
   for (const {stats} of results) {
     expect(stats).toBeTruthy();
   }
@@ -261,7 +260,7 @@ test("invalid dir rejects rather than throwing synchronously", async () => {
   await expect(rrdirAsync(null as any)).rejects.toThrow();
 });
 
-test.skipIf(isBun)("Uint8Array", () => makeTest(toUint8Array("test"), undefined, (results: Array<Entry>) => {
+test("Uint8Array", () => makeTest(toUint8Array("test"), undefined, (results: Array<Entry>) => {
   for (const entry of results) {
     expect(entry.path instanceof Uint8Array).toEqual(true);
   }
@@ -272,7 +271,7 @@ if (!skipWeird) {
     expect(uint8ArrayContains(toUint8Array(results[0].path as string), weirdUint8Array)).toEqual(false);
   }));
 
-  test.skipIf(isBun)("weird as Uint8Array", () => makeTest(toUint8Array("test"), {include: ["**/x*"]}, (results: Array<Entry>) => {
+  test("weird as Uint8Array", () => makeTest(toUint8Array("test"), {include: ["**/x*"]}, (results: Array<Entry>) => {
     expect(uint8ArrayContains(results[0].path as Uint8Array, weirdUint8Array)).toEqual(true);
   }));
 }
@@ -322,7 +321,7 @@ test.skipIf(isWindows)("stat error yields single entry per path", async () => {
   }
 });
 
-test.skipIf(isWindows || isBun)("Uint8Array absolute include", () => makeTest(toUint8Array("test"), {include: [join(testDir, "**/f*")]}, (results: Array<Entry<Uint8Array>>) => {
+test.skipIf(isWindows)("Uint8Array absolute include", () => makeTest(toUint8Array("test"), {include: [join(testDir, "**/f*")]}, (results: Array<Entry<Uint8Array>>) => {
   const names = results.map(r => toString(r.path)).sort();
   expect(names).toEqual([
     join(testDir, "test/dir/file"),
@@ -332,7 +331,7 @@ test.skipIf(isWindows || isBun)("Uint8Array absolute include", () => makeTest(to
   ].sort());
 }));
 
-test.skipIf(isBun)("Uint8Array trailing slash stripped", () => {
+test("Uint8Array trailing slash stripped", () => {
   const dir = joinUint8Array(testDir, "test");
   const dirSlash = Uint8Array.from([...dir, ...sepUint8Array]);
 
@@ -350,7 +349,7 @@ test("multiple trailing separators stripped", () => {
   }
 });
 
-test.skipIf(isBun)("Uint8Array multiple trailing separators stripped", () => {
+test("Uint8Array multiple trailing separators stripped", () => {
   const dir = joinUint8Array(testDir, "test");
   const expected = rrdirSync(dir).map(e => toString(e.path)).sort();
   const dirSlashes = Uint8Array.from([...dir, ...sepUint8Array, ...sepUint8Array]);
@@ -370,7 +369,7 @@ test("root path is read, not corrupted", async () => {
   }
 });
 
-test.skipIf(isWindows || isBun)("Uint8Array root path is read, not corrupted", async () => {
+test.skipIf(isWindows)("Uint8Array root path is read, not corrupted", async () => {
   const {value, done} = await rrdir(toUint8Array("/")).next();
   expect(done).toBe(false);
   expect(value.err).toBeUndefined();

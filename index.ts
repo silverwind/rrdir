@@ -1,4 +1,5 @@
 import {readdir as readdirCb, stat as statCb, lstat as lstatCb, readdirSync, statSync, lstatSync} from "node:fs";
+import {lstat} from "node:fs/promises";
 import {sep, resolve, isAbsolute} from "node:path";
 import type {Stats} from "node:fs";
 
@@ -95,6 +96,28 @@ function makePath<T extends Dir>(name: string | Uint8Array, prefix: string | Uin
   return ((prefix as string) + (name as string)) as T;
 }
 
+// bun ignores withFileTypes with buffer encoding, https://github.com/oven-sh/bun/issues/27914
+const readdirDirentsSync: (dir: Buffer, opts: any) => Array<DirentLike> = !process.versions.bun ? readdirSync : (dir, opts) => {
+  const entries = readdirSync(dir, opts) as unknown as Array<DirentLike | Uint8Array>;
+  if (!(entries[0] instanceof Uint8Array)) return entries as Array<DirentLike>;
+  const prefix = makeDirPrefix(dir, true);
+  return (entries as Array<Uint8Array>).map(name => Object.assign(lstatSync(makePath(name, prefix, true)), {name}));
+};
+
+const readdirDirents: (dir: Buffer, opts: any, cb: (err: Error | null, dirents: Array<DirentLike>) => void) => void = !process.versions.bun ? readdirCb : (dir, opts, cb) => {
+  readdirCb(dir, opts, async (err, entries: Array<DirentLike | Uint8Array>) => {
+    if (err || !(entries[0] instanceof Uint8Array)) return cb(err, entries as Array<DirentLike>);
+    const prefix = makeDirPrefix(dir, true);
+    let dirents: Array<DirentLike>;
+    try {
+      dirents = await Promise.all((entries as Array<Uint8Array>).map(async name => Object.assign(await lstat(makePath(name, prefix, true)), {name})));
+    } catch (lstatErr) {
+      return cb(lstatErr as Error, []);
+    }
+    cb(null, dirents);
+  });
+};
+
 function build<T extends Dir>(path: T, directory: boolean, symlink: boolean, stats: Stats | undefined, needStats: boolean): Entry<T> {
   if (needStats) return {path, directory, symlink, stats};
   return {path, directory, symlink};
@@ -186,7 +209,7 @@ export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): Async
   while (currentLevel.length > 0) {
     const reads = await Promise.all(currentLevel.map(d => new Promise<Error | Array<DirentLike>>(resolve => {
       try {
-        readdirCb(d as Buffer, readdirOpts, (err, dirents) => resolve(err ?? dirents as unknown as Array<DirentLike>));
+        readdirDirents(d as Buffer, readdirOpts, (err, dirents) => resolve(err ?? dirents));
       } catch (err) {
         resolve(err as Error);
       }
@@ -271,13 +294,12 @@ export function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Promise
 function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results: Array<Entry<T>>, done: (err?: Error) => void): void {
   const {includeMatcher, excludeMatcher, isBuffer, followSymlinks, needStats, strict, readdirOpts, statCbFn} = internalOpts;
 
-  readdirCb(dir as Buffer, readdirOpts, (err, direntsRaw) => {
+  readdirDirents(dir as Buffer, readdirOpts, (err, dirents) => {
     if (err) {
       if (strict) return done(err);
       results.push({path: dir, err});
       return done();
     }
-    const dirents = direntsRaw as unknown as Array<DirentLike>;
     if (!dirents.length) return done();
 
     const prefix = makeDirPrefix(dir, isBuffer);
@@ -358,7 +380,7 @@ function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, resul
     const currentDir = stack.pop()!;
     let dirents: Array<DirentLike> = [];
     try {
-      dirents = readdirSync(currentDir as Buffer, readdirOpts) as unknown as Array<DirentLike>;
+      dirents = readdirDirentsSync(currentDir as Buffer, readdirOpts);
     } catch (err) {
       if (strict) throw err;
       results.push({path: currentDir, err: err as Error});
