@@ -149,7 +149,7 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
   if (!patterns?.length) return null;
 
   const regexes = patterns.map(pattern => globToRegex(pattern, insensitive));
-  const prefix = pathIsAbsolute ? "" : resolve(".") + sep;
+  const prefix = pathIsAbsolute ? "" : makeDirPrefix(resolve("."), false) as string;
   if (isWin) {
     return (path: string) => {
       const p = (prefix + path).replace(/\\/g, "/");

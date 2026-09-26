@@ -209,6 +209,16 @@ test.skipIf(isWindows)("include", () => makeTest("test", {include: [join(testDir
   entry("test/file"),
   entry("test/filesymlink", false, true),
 ]));
+test.skipIf(isWindows)("include matches relative dir read from root cwd", () => {
+  const cwd = process.cwd();
+  process.chdir("/");
+  try {
+    const dir = relative("/", join(testDir, "test"));
+    expect(rrdirSync(dir, {include: [join(testDir, "test/f*")]}).map(e => e.path).sort()).toEqual([`${dir}/file`, `${dir}/filesymlink`]);
+  } finally {
+    process.chdir(cwd);
+  }
+});
 test("include 2", () => makeTest("test", {include: ["**"]}, basicExpected));
 test("include 3", () => makeTest("test", {include: ["**/dir2/**"]}, [
   entry("test/dir2", true),
