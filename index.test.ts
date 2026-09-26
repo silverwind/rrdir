@@ -15,7 +15,6 @@ const uint8ArrayContains = (arr: Uint8Array, subArr: Uint8Array) => Buffer.from(
 const weirdUint8Array = Uint8Array.from([0x78, 0xf6, 0x6c, 0x78]);
 const weirdString = toString(weirdUint8Array);
 
-// node on windows apparently sometimes can not follow symlink directories
 const isWindows = platform() === "win32";
 
 const skipWeird = platform() === "darwin" || isWindows;
@@ -61,10 +60,10 @@ function sort<T extends Array<Entry>>(entries: T): T {
 function normalize<T extends Array<Entry>>(entries: T): T {
   const ret: T = [] as any;
   for (const item of sort(entries)) {
-    if (typeof item?.path === "string") {
+    if (typeof item.path === "string") {
       item.path = relative(testDir, item.path).replaceAll("\\", "/");
     }
-    if ((item?.path as string)?.endsWith?.("lx")) continue; // weird "test/x�lx" files on github actions linux
+    if ((item.path as string).endsWith?.("lx")) continue; // weird "test/x�lx" files on github actions linux
     ret.push(item);
   }
   return ret;
@@ -132,7 +131,7 @@ test.skipIf(isWindows)("followSymlinks", () => makeTest("test", {followSymlinks:
 
 test("stats", () => makeTest("test", {stats: true}, (results: Array<Entry>) => {
   for (const {path, stats} of results) {
-    if ((path as string)?.includes?.(weirdString)) continue;
+    if ((path as string).includes(weirdString)) continue;
     expect(stats).toBeTruthy();
   }
 }));
@@ -204,7 +203,6 @@ test("exclude stats", () => makeTest("test", {exclude: ["**/dir", "**/dir2"], st
   expect(file?.stats?.isFile()).toEqual(true);
 }));
 
-// does not work on windows, likely a picomatch bug
 test.skipIf(isWindows)("include", () => makeTest("test", {include: [join(testDir, "**/f*")]}, [
   entry("test/dir/file"),
   entry("test/dir2/file"),
@@ -278,7 +276,6 @@ if (!skipWeird) {
 
 test.skipIf(isWindows)("descends into directory whose stat failed", async () => {
   // chmod 0o400 on parent: readdir works, stat on children fails (no traversal bit).
-  // Iterator and sync paths fall back to dirent.isDirectory() for descent; callback path must too.
   const dir = mkdtempSync(join(tmpdir(), "rrdir-statfail-"));
   try {
     await mkdir(join(dir, "child"));
@@ -357,7 +354,6 @@ test("Uint8Array multiple trailing separators stripped", () => {
   expect(got).toEqual(expected);
 });
 
-// a root must be listed, not corrupted into "" (ENOENT) or a drive-relative path
 test("root path is read, not corrupted", async () => {
   const root = isWindows ? parse(process.cwd()).root : "/";
   for (const dir of [root, `${root}${sep}`]) {
@@ -376,7 +372,6 @@ test.skipIf(isWindows)("Uint8Array root path is read, not corrupted", async () =
   expect(toString(value.path).startsWith("/")).toBe(true);
 });
 
-// a trailing backslash is part of the name on posix, stripping it reads a different directory
 test.skipIf(isWindows)("trailing backslash is a filename, not a separator", async () => {
   const dir = join(testDir, "bs");
   await mkdir(join(dir, "a"), {recursive: true});

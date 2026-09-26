@@ -150,7 +150,7 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
 
   const regexes = patterns.map(pattern => globToRegex(pattern, insensitive));
   const prefix = pathIsAbsolute ? "" : resolve(".") + sep;
-  if (sep === "\\") {
+  if (isWin) {
     return (path: string) => {
       const p = (prefix + path).replace(/\\/g, "/");
       for (const re of regexes) if (re.test(p)) return true;
@@ -165,8 +165,7 @@ function createMatcher(patterns: Array<string> | undefined, insensitive: boolean
 }
 
 function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts: InternalOpts} {
-  // strip trailing separators, but never reduce a filesystem root ("/", "C:\", "\\server\share\")
-  // to an empty or drive-relative path, which would make readdir fail or read the wrong directory
+  // strip trailing separators without reducing a root like "/" or "C:\" to "" or a drive-relative path
   if (dir instanceof Uint8Array) {
     let end = dir.length;
     while (end > 1 && isSep(dir[end - 1])) end--;
@@ -181,12 +180,10 @@ function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts
   const isBuffer = dir instanceof Uint8Array;
   const insensitive = Boolean(opts.insensitive);
   const pathIsAbsolute = dir instanceof Uint8Array ? isAbsolute(toString(dir)) : isAbsolute(dir);
-  const includeMatcher = createMatcher(opts.include, insensitive, pathIsAbsolute);
-  const excludeMatcher = createMatcher(opts.exclude, insensitive, pathIsAbsolute);
   const followSymlinks = Boolean(opts.followSymlinks);
   return {dir, internalOpts: {
-    includeMatcher,
-    excludeMatcher,
+    includeMatcher: createMatcher(opts.include, insensitive, pathIsAbsolute),
+    excludeMatcher: createMatcher(opts.exclude, insensitive, pathIsAbsolute),
     isBuffer,
     followSymlinks,
     needStats: Boolean(opts.stats),
@@ -201,11 +198,9 @@ function initOpts<T extends Dir>(dir: T, opts: RRDirOpts): {dir: T, internalOpts
 export async function* rrdir<T extends Dir>(dir: T, opts: RRDirOpts = {}): AsyncGenerator<Entry<T>> {
   const init = initOpts(dir, opts);
   const {includeMatcher, excludeMatcher, isBuffer, followSymlinks, needStats, strict, readdirOpts, statCbFn} = init.internalOpts;
-  dir = init.dir;
 
-  // BFS with parallel reads per level exploits I/O concurrency via Promise.all.
-  // reads stays index-aligned with currentLevel; a failed read resolves to its Error.
-  let currentLevel: Array<T> = [dir];
+  // BFS reads all directories of a level concurrently
+  let currentLevel: Array<T> = [init.dir];
   while (currentLevel.length > 0) {
     const reads = await Promise.all(currentLevel.map(d => new Promise<Error | Array<DirentLike>>(resolve => {
       try {
@@ -289,8 +284,7 @@ export function rrdirAsync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Promise
   });
 }
 
-// Callback-based traversal: avoids Promise/microtask overhead per readdir/stat,
-// and dispatches stats in parallel (the awaited fs/promises version serialized them).
+// callbacks avoid per-readdir/stat promise overhead
 function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results: Array<Entry<T>>, done: (err?: Error) => void): void {
   const {includeMatcher, excludeMatcher, isBuffer, followSymlinks, needStats, strict, readdirOpts, statCbFn} = internalOpts;
 
@@ -367,18 +361,13 @@ function rrdirAsyncCb<T extends Dir>(dir: T, internalOpts: InternalOpts, results
 /** Synchronously recursively read a directory, returning all entries as an array. Memory usage is `O(n)`. */
 export function rrdirSync<T extends Dir>(dir: T, opts: RRDirOpts = {}): Array<Entry<T>> {
   const init = initOpts(dir, opts);
+  const {includeMatcher, excludeMatcher, isBuffer, followSymlinks, needStats, strict, readdirOpts, statSyncFn} = init.internalOpts;
   const results: Array<Entry<T>> = [];
-  rrdirSyncInner(init.dir, init.internalOpts, results);
-  return results;
-}
-
-function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, results: Array<Entry<T>>): void {
-  const {includeMatcher, excludeMatcher, isBuffer, followSymlinks, needStats, strict, readdirOpts, statSyncFn} = internalOpts;
-  const stack: Array<T> = [dir];
+  const stack: Array<T> = [init.dir];
 
   while (stack.length > 0) {
     const currentDir = stack.pop()!;
-    let dirents: Array<DirentLike> = [];
+    let dirents: Array<DirentLike>;
     try {
       dirents = readdirDirentsSync(currentDir as Buffer, readdirOpts);
     } catch (err) {
@@ -422,4 +411,5 @@ function rrdirSyncInner<T extends Dir>(dir: T, internalOpts: InternalOpts, resul
       if (directory) stack.push(path);
     }
   }
+  return results;
 }
