@@ -4,14 +4,10 @@ import {writeFile, mkdir, symlink, rm, chmod} from "node:fs/promises";
 import {mkdtempSync} from "node:fs";
 import {platform, tmpdir} from "node:os";
 
-const encoder = new TextEncoder();
-const toUint8Array = encoder.encode.bind(encoder);
-const decoder = new TextDecoder();
-const toString: (input: AllowSharedBufferSource) => string = decoder.decode.bind(decoder);
-const sepUint8Array = toUint8Array(sep);
+const toUint8Array = (input: string) => new TextEncoder().encode(input);
+const toString = (input: AllowSharedBufferSource) => new TextDecoder().decode(input);
 const uint8ArrayContains = (arr: Uint8Array, subArr: Uint8Array) => Buffer.from(arr).includes(Buffer.from(subArr));
 
-// this Uint8Array does not round-trip through utf8 en/decoding and throws EILSEQ in darwin
 const weirdUint8Array = Uint8Array.from([0x78, 0xf6, 0x6c, 0x78]);
 const weirdString = toString(weirdUint8Array);
 
@@ -20,25 +16,14 @@ const isWindows = platform() === "win32";
 const skipWeird = platform() === "darwin" || isWindows;
 const testDir = mkdtempSync(join(tmpdir(), "rrdir-"));
 
-function joinUint8Array(a: Uint8Array | string, b: Uint8Array | string) {
-  return Uint8Array.from([
-    ...(a instanceof Uint8Array ? a : toUint8Array(a)),
-    ...sepUint8Array,
-    ...(b instanceof Uint8Array ? b : toUint8Array(b)),
-  ]);
-}
+const joinUint8Array = (dir: string, name: Uint8Array) => Uint8Array.from([...toUint8Array(dir + sep), ...name]);
 
 beforeAll(async () => {
-  await mkdir(join(testDir, "test"));
-  await mkdir(join(testDir, "test/dir"));
+  await mkdir(join(testDir, "test/dir"), {recursive: true});
   await mkdir(join(testDir, "test/dir2"));
-  await writeFile(join(testDir, "test/file"), "test");
-  await writeFile(join(testDir, "test/dir/file"), "test");
-  await writeFile(join(testDir, "test/dir2/file"), "test");
-  await writeFile(join(testDir, "test/dir2/UPPER"), "test");
-  await writeFile(join(testDir, "test/dir2/exclude.txt"), "test");
-  await writeFile(join(testDir, "test/dir2/exclude.md"), "test");
-  await writeFile(join(testDir, "test/dir2/exclude.css"), "test");
+  for (const file of ["file", "dir/file", "dir2/file", "dir2/UPPER", "dir2/exclude.txt", "dir2/exclude.md", "dir2/exclude.css"]) {
+    await writeFile(join(testDir, "test", file), "test");
+  }
   if (!skipWeird) await writeFile(joinUint8Array(join(testDir, "test"), weirdUint8Array) as any, "test");
   await symlink(join(testDir, "test/file"), join(testDir, "test/filesymlink"));
   await symlink(join(testDir, "test/dir"), join(testDir, "test/dirsymlink"));
@@ -48,25 +33,11 @@ afterAll(async () => {
   await rm(testDir, {recursive: true});
 });
 
-function sort<T extends Array<Entry>>(entries: T): T {
-  entries.sort((a, b) => {
-    const aString = a.path instanceof Uint8Array ? toString(a.path) : a.path;
-    const bString = b.path instanceof Uint8Array ? toString(b.path) : b.path;
-    return aString.localeCompare(bString);
-  });
-  return entries;
-}
-
-function normalize<T extends Array<Entry>>(entries: T): T {
-  const ret: T = [] as any;
-  for (const item of sort(entries)) {
-    if (typeof item.path === "string") {
-      item.path = relative(testDir, item.path).replaceAll("\\", "/");
-    }
-    if ((item.path as string).endsWith?.("lx")) continue; // weird "test/x�lx" files on github actions linux
-    ret.push(item);
-  }
-  return ret;
+function normalize(entries: Array<Entry>) {
+  return entries
+    .map(entry => ({...entry, path: relative(testDir, entry.path as string).replaceAll("\\", "/")}))
+    .filter(({path}) => !path.includes(weirdString))
+    .sort((a, b) => a.path.localeCompare(b.path));
 }
 
 function entry(path: string, directory = false, symlink = false) {
@@ -74,27 +45,10 @@ function entry(path: string, directory = false, symlink = false) {
 }
 
 async function makeTest<T extends Dir>(dir: T, opts: RRDirOpts | undefined, expected: Array<ReturnType<typeof entry>> | ((results: Array<Entry<T>>) => void)) {
-  if (typeof dir === "string") {
-    dir = join(testDir, dir) as T;
-  } else {
-    dir = joinUint8Array(testDir, dir) as T;
-  }
-
-  let iteratorResults: Array<Entry<T>> = await Array.fromAsync(rrdir(dir, opts));
-  let asyncResults = await rrdirAsync(dir, opts);
-  let syncResults = rrdirSync(dir, opts);
-
-  if (typeof expected === "function") {
-    expected(iteratorResults);
-    expected(asyncResults);
-    expected(syncResults);
-  } else {
-    iteratorResults = normalize(iteratorResults);
-    asyncResults = normalize(asyncResults);
-    syncResults = normalize(syncResults);
-    expect(iteratorResults).toEqual(expected);
-    expect(syncResults).toEqual(iteratorResults);
-    expect(asyncResults).toEqual(iteratorResults);
+  const path = (typeof dir === "string" ? join(testDir, dir) : joinUint8Array(testDir, dir)) as T;
+  for (const results of [await Array.fromAsync(rrdir(path, opts)), await rrdirAsync(path, opts), rrdirSync(path, opts)]) {
+    if (typeof expected === "function") expected(results);
+    else expect(normalize(results)).toEqual(expected);
   }
 }
 
@@ -114,6 +68,7 @@ const basicExpected = [
 
 test("basic", () => makeTest("test", undefined, basicExpected));
 test("basic slash", () => makeTest("test/", undefined, basicExpected));
+test("include all", () => makeTest("test", {include: ["**"]}, basicExpected));
 test.skipIf(isWindows)("followSymlinks", () => makeTest("test", {followSymlinks: true}, [
   entry("test/dir", true),
   entry("test/dir/file"),
@@ -129,78 +84,42 @@ test.skipIf(isWindows)("followSymlinks", () => makeTest("test", {followSymlinks:
   entry("test/filesymlink"),
 ]));
 
-test("stats", () => makeTest("test", {stats: true}, (results: Array<Entry>) => {
-  for (const {path, stats} of results) {
-    if ((path as string).includes(weirdString)) continue;
-    expect(stats).toBeTruthy();
+test("path type follows dir type and stats are present only when requested", async () => {
+  for (const dir of ["test", toUint8Array("test")]) {
+    for (const opts of [undefined, {stats: false}, {stats: true}]) {
+      await makeTest(dir, opts, (results: Array<Entry>) => {
+        for (const {path, stats} of results) {
+          expect(path instanceof Uint8Array).toEqual(dir instanceof Uint8Array);
+          if (!opts?.stats) expect(stats).toBeUndefined();
+          else if (!(path as string).includes(weirdString)) expect(stats).toBeTruthy();
+        }
+      });
+    }
   }
-}));
+});
 
-test("stats Uint8Array", () => makeTest(toUint8Array("test"), {stats: true}, (results: Array<Entry>) => {
-  for (const {stats} of results) {
-    expect(stats).toBeTruthy();
-  }
-}));
-
-test("nostats", () => makeTest("test", {stats: false}, (results: Array<Entry>) => {
-  for (const result of results) expect(result.stats).toEqual(undefined);
-}));
-
-test("exclude", () => makeTest("test", {exclude: ["**/dir"]}, [
-  entry("test/dir2", true),
-  entry("test/dir2/exclude.css"),
-  entry("test/dir2/exclude.md"),
-  entry("test/dir2/exclude.txt"),
-  entry("test/dir2/file"),
-  entry("test/dir2/UPPER"),
-  entry("test/dirsymlink", false, true),
-  entry("test/file"),
-  entry("test/filesymlink", false, true),
-]));
-test("exclude 2", () => makeTest("test", {exclude: ["**/dir2"]}, [
-  entry("test/dir", true),
-  entry("test/dir/file"),
-  entry("test/dirsymlink", false, true),
-  entry("test/file"),
-  entry("test/filesymlink", false, true),
-]));
-test("exclude 3", () => makeTest("test", {exclude: ["**/dir*"]}, [
-  entry("test/file"),
-  entry("test/filesymlink", false, true),
-]));
-test("exclude 4", () => makeTest("test", {exclude: ["**/dir", "**/dir2"]}, [
-  entry("test/dirsymlink", false, true),
-  entry("test/file"),
-  entry("test/filesymlink", false, true),
-]));
-test("exclude 5", () => makeTest("test", {exclude: ["**"]}, []));
-test("exclude 6", () => makeTest("test", {exclude: ["**.txt"]}, [
-  entry("test/dir", true),
-  entry("test/dir/file"),
-  entry("test/dir2", true),
-  entry("test/dir2/exclude.css"),
-  entry("test/dir2/exclude.md"),
-  entry("test/dir2/file"),
-  entry("test/dir2/UPPER"),
-  entry("test/dirsymlink", false, true),
-  entry("test/file"),
-  entry("test/filesymlink", false, true),
-]));
-test("exclude 7", () => makeTest("test", {exclude: ["**.txt", "**.md"]}, [
-  entry("test/dir", true),
-  entry("test/dir/file"),
-  entry("test/dir2", true),
-  entry("test/dir2/exclude.css"),
-  entry("test/dir2/file"),
-  entry("test/dir2/UPPER"),
-  entry("test/dirsymlink", false, true),
-  entry("test/file"),
-  entry("test/filesymlink", false, true),
-]));
+for (const [opts, names] of [
+  [{exclude: ["**/dir"]}, ["dir2", "dir2/exclude.css", "dir2/exclude.md", "dir2/exclude.txt", "dir2/file", "dir2/UPPER", "dirsymlink", "file", "filesymlink"]],
+  [{exclude: ["**/dir2"]}, ["dir", "dir/file", "dirsymlink", "file", "filesymlink"]],
+  [{exclude: ["**/dir*"]}, ["file", "filesymlink"]],
+  [{exclude: ["**/dir", "**/dir2"]}, ["dirsymlink", "file", "filesymlink"]],
+  [{exclude: ["**"]}, []],
+  [{exclude: ["**.txt"]}, ["dir", "dir/file", "dir2", "dir2/exclude.css", "dir2/exclude.md", "dir2/file", "dir2/UPPER", "dirsymlink", "file", "filesymlink"]],
+  [{exclude: ["**.txt", "**.md"]}, ["dir", "dir/file", "dir2", "dir2/exclude.css", "dir2/file", "dir2/UPPER", "dirsymlink", "file", "filesymlink"]],
+  [{include: ["**/dir2/**"]}, ["dir2", "dir2/exclude.css", "dir2/exclude.md", "dir2/exclude.txt", "dir2/file", "dir2/UPPER"]],
+  [{include: ["**/dir/"]}, []],
+  [{include: ["**/dir"]}, ["dir"]],
+  [{include: ["**.txt"]}, ["dir2/exclude.txt"]],
+  [{include: ["**/dir2/fil?"]}, ["dir2/file"]],
+  [{include: ["**/test/**/file"]}, ["dir/file", "dir2/file", "file"]],
+  [{include: ["**/u*"], insensitive: true}, ["dir2/UPPER"]],
+  [{exclude: ["**/dir2"], include: ["**/file"]}, ["dir/file", "file"]],
+] as Array<[RRDirOpts, Array<string>]>) {
+  test(`glob ${JSON.stringify(opts)}`, () => makeTest("test", opts, basicExpected.filter(({path}) => names.includes(path.replace("test/", "")))));
+}
 
 test("exclude stats", () => makeTest("test", {exclude: ["**/dir", "**/dir2"], stats: true}, (results: Array<Entry>) => {
-  const file = results.find(result => result.path === join(testDir, "test/file"));
-  expect(file?.stats?.isFile()).toEqual(true);
+  expect(results.find(({path}) => path === join(testDir, "test/file"))!.stats!.isFile()).toEqual(true);
 }));
 
 test.skipIf(isWindows)("include", () => makeTest("test", {include: [join(testDir, "**/f*")]}, [
@@ -219,38 +138,6 @@ test.skipIf(isWindows)("include matches relative dir read from root cwd", () => 
     process.chdir(cwd);
   }
 });
-test("include 2", () => makeTest("test", {include: ["**"]}, basicExpected));
-test("include 3", () => makeTest("test", {include: ["**/dir2/**"]}, [
-  entry("test/dir2", true),
-  entry("test/dir2/exclude.css"),
-  entry("test/dir2/exclude.md"),
-  entry("test/dir2/exclude.txt"),
-  entry("test/dir2/file"),
-  entry("test/dir2/UPPER"),
-]));
-test("include 4", () => makeTest("test", {include: ["**/dir/"]}, []));
-test("include 5", () => makeTest("test", {include: ["**/dir"]}, [
-  entry("test/dir", true),
-]));
-test("include 6", () => makeTest("test", {include: ["**.txt"]}, [
-  entry("test/dir2/exclude.txt"),
-]));
-test("include 7", () => makeTest("test", {include: ["**/dir2/fil?"]}, [
-  entry("test/dir2/file"),
-]));
-// a middle "/**/" also matches zero segments, so "test/file" matches too
-test("include 8", () => makeTest("test", {include: ["**/test/**/file"]}, [
-  entry("test/dir/file"),
-  entry("test/dir2/file"),
-  entry("test/file"),
-]));
-test("insensitive", () => makeTest("test", {include: ["**/u*"], insensitive: true}, [
-  entry("test/dir2/UPPER"),
-]));
-test("exclude include", () => makeTest("test", {exclude: ["**/dir2"], include: ["**/file"]}, [
-  entry("test/dir/file"),
-  entry("test/file"),
-]));
 
 test("error entry for missing or invalid dir", async () => {
   for (const dir of ["notfound", "not\0found"]) {
@@ -271,12 +158,6 @@ test("error strict", async () => {
 test("invalid dir rejects rather than throwing synchronously", async () => {
   await expect(rrdirAsync(null as any)).rejects.toThrow();
 });
-
-test("Uint8Array", () => makeTest(toUint8Array("test"), undefined, (results: Array<Entry>) => {
-  for (const entry of results) {
-    expect(entry.path instanceof Uint8Array).toEqual(true);
-  }
-}));
 
 if (!skipWeird) {
   test("weird as string", () => makeTest("test", {include: ["**/x*"]}, (results: Array<Entry>) => {
@@ -342,30 +223,12 @@ test.skipIf(isWindows)("Uint8Array absolute include", () => makeTest(toUint8Arra
   ].sort());
 }));
 
-test("Uint8Array trailing slash stripped", () => {
-  const dir = joinUint8Array(testDir, "test");
-  const dirSlash = Uint8Array.from([...dir, ...sepUint8Array]);
-
-  const noSlash = rrdirSync(dir).map(e => toString(e.path)).sort();
-  const withSlash = rrdirSync(dirSlash).map(e => toString(e.path)).sort();
-
-  expect(withSlash).toEqual(noSlash);
-});
-
-test("multiple trailing separators stripped", () => {
-  const expected = rrdirSync(join(testDir, "test")).map(e => e.path).sort();
-  for (const suffix of [`${sep}${sep}`, `${sep}${sep}${sep}`, "//"]) {
-    const got = rrdirSync(join(testDir, "test") + suffix).map(e => e.path).sort();
-    expect(got).toEqual(expected);
+test("trailing separators stripped", () => {
+  const dir = join(testDir, "test");
+  for (const convert of [String, toUint8Array]) {
+    const read = (suffix: string) => rrdirSync(convert(dir + suffix)).map(({path}) => String(path)).sort();
+    for (const suffix of [sep, `${sep}${sep}`, `${sep}${sep}${sep}`, "//"]) expect(read(suffix)).toEqual(read(""));
   }
-});
-
-test("Uint8Array multiple trailing separators stripped", () => {
-  const dir = joinUint8Array(testDir, "test");
-  const expected = rrdirSync(dir).map(e => toString(e.path)).sort();
-  const dirSlashes = Uint8Array.from([...dir, ...sepUint8Array, ...sepUint8Array]);
-  const got = rrdirSync(dirSlashes).map(e => toString(e.path)).sort();
-  expect(got).toEqual(expected);
 });
 
 test("root path is read, not corrupted", async () => {
