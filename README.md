@@ -63,7 +63,7 @@ The directory to read, either absolute or relative. Pass a `Uint8Array` to switc
 
 - `path` *string* | *Uint8Array*: The path to the entry, will be relative if `dir` is given relative. If `dir` is a `Uint8Array`, this will be too. Always present.
 - `directory` *boolean*: Boolean indicating whether the entry is a directory. `undefined` on error.
-- `symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. `undefined` on error.
+- `symlink` *boolean*: Boolean indicating whether the entry is a symbolic link. Always `false` when `options.followSymlinks` is set. `undefined` on error.
 - `stats` *Object*: A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error.
 - `err` *Error*: Any error encountered while reading this entry. `undefined` on success.
 

@@ -59,7 +59,7 @@ export type Entry<T = Dir> = {
   path: T,
   /** Boolean indicating whether the entry is a directory. `undefined` on error. */
   directory?: boolean,
-  /** Boolean indicating whether the entry is a symbolic link. `undefined` on error. */
+  /** Boolean indicating whether the entry is a symbolic link. Always `false` when `options.followSymlinks` is set. `undefined` on error. */
   symlink?: boolean,
   /** A [`fs.stats`](https://nodejs.org/api/fs.html#fs_class_fs_stats) object, present when `options.stats` is set. `undefined` on error. */
   stats?: Stats,
